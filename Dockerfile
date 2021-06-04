@@ -11,16 +11,8 @@ COPY target/*jar-with-dependencies.jar sd2021.jar
 COPY trab.props trab.props
 
 # copy keystore
-COPY server.ks server.ks
+COPY users.ks users.ks
+COPY sheets.ks sheets.ks
 
 # copy truststore
 COPY truststore.ks truststore.ks
-
-# run the server when starting the docker image
-CMD ["java", "-cp", "/home/sd/sd2021.jar",
-"-Djavax.net.ssl.keyStore=server.ks",
-"-Djavax.net.ssl.keyStorePassword=password",
-"-Djavax.net.ssl.trustStore=truststore.ks",
-"-Djavax.net.ssl.trustStorePassword=changeit",
-"sd2021.aula2.server.UserServer"]
-

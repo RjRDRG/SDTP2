@@ -11,7 +11,8 @@ then
 fi 
 
 # get the latest version
-docker pull nunopreguica/sd2021-tester-tp1
+docker pull nunopreguica/sd2021-tester-tp2
 
 # execute the client with the given command line parameters
-docker run --rm --network=sdnet -it -v /var/run/docker.sock:/var/run/docker.sock nunopreguica/sd2021-tester-tp1 $*
+docker run --rm --network=sdnet -it -v /var/run/docker.sock:/var/run/docker.sock nunopreguica/sd2021-tester-tp2 $*
+
