@@ -1,9 +1,11 @@
 package tp1.resources;
 
+import com.google.gson.Gson;
 import jakarta.inject.Singleton;
 import jakarta.jws.WebService;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response.Status;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import tp1.api.User;
 import tp1.api.service.rest.RestUsers;
 import tp1.api.service.soap.SoapUsers;
@@ -11,7 +13,10 @@ import tp1.api.service.soap.UsersException;
 import tp1.clients.sheet.SpreadsheetClient;
 import tp1.clients.sheet.SpreadsheetRetryClient;
 import tp1.discovery.Discovery;
+import tp1.kafka.KafkaSubscriber;
+import tp1.kafka.RecordProcessor;
 import tp1.server.WebServiceType;
+import tp1.kafka.KafkaPublisher;
 
 import java.net.URI;
 import java.util.*;
@@ -37,9 +42,34 @@ public class UsersResource implements RestUsers, SoapUsers {
 
 	private static Logger Log = Logger.getLogger(UsersResource.class.getName());
 
+	private KafkaPublisher publisher;
+	private Gson json;
+
+	private List<String> topicList;
+
 	public UsersResource(String domainId, WebServiceType type) {
 		this.domainId = domainId;
 		this.type = type;
+		publisher = KafkaPublisher.createPublisher("localhost:9092");
+
+		json = new Gson();
+
+		topicList = new LinkedList<String>();
+
+		topicList.add("teste");
+		KafkaSubscriber subscriber = KafkaSubscriber.createSubscriber("localhost:9092", topicList);
+		subscriber.start (new RecordProcessor() {
+			@Override
+			public void onReceive(ConsumerRecord<String, String> r) {
+				System.out.println("Sequence Number: " + r.topic() + ", " + r.offset() + " -> " + r.value());
+				User user = json.fromJson(r.value(), User.class);
+				try {
+					createUser(user);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
 	}
 
 
@@ -95,6 +125,13 @@ public class UsersResource implements RestUsers, SoapUsers {
 			}
 
 			users.put(userId, user);
+
+			long sequenceNumber = publisher.publish("teste", json.toJson(user));
+
+			if(sequenceNumber >= 0)
+				System.out.println("Message published with sequence number: " + sequenceNumber);
+			else
+				System.out.println("Failed to publish message");
 
 			return userId;
 		}

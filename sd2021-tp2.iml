@@ -65,6 +65,10 @@
     <orderEntry type="library" name="Maven: com.github.scribejava:scribejava-java8:8.3.0" level="project" />
     <orderEntry type="library" name="Maven: org.pac4j:pac4j-oauth:4.0.0" level="project" />
     <orderEntry type="library" name="Maven: org.pac4j:pac4j-core:4.0.0" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.kafka:kafka-clients:2.8.0" level="project" />
+    <orderEntry type="library" name="Maven: com.github.luben:zstd-jni:1.4.9-1" level="project" />
+    <orderEntry type="library" name="Maven: org.lz4:lz4-java:1.7.1" level="project" />
+    <orderEntry type="library" name="Maven: org.xerial.snappy:snappy-java:1.1.8.1" level="project" />
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.7.30" level="project" />
   </component>
 </module>

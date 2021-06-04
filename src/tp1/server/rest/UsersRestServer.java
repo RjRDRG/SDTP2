@@ -29,6 +29,7 @@ public class UsersRestServer {
 	public static void main(String[] args) {
 		try {
 			String domain = args.length > 0 ? args[0] : "domain0";
+			int port = args.length > 1 ? Integer.parseInt(args[1]) : PORT;
 
 			String ip = InetAddress.getLocalHost().getHostAddress();
 
@@ -37,7 +38,7 @@ public class UsersRestServer {
 			ResourceConfig config = new ResourceConfig();
 			config.register(new UsersResource(domain, WebServiceType.REST));
 
-			String serverURI = String.format("https://%s:%s/rest", ip, PORT);
+			String serverURI = String.format("https://%s:%s/rest", ip, port);
 			JdkHttpServerFactory.createHttpServer(URI.create(serverURI), config, SSLContext.getDefault());
 
 			Discovery discovery = new Discovery(  domain, SERVICE, serverURI);
