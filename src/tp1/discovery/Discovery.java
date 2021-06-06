@@ -70,7 +70,11 @@ public class Discovery {
 	public static void init(String domainId, String serviceName, String serviceURI) {
 		init(DISCOVERY_ADDR, domainId, serviceName, serviceURI);
 	}
-	
+
+	public String getServiceURI() {
+		return serviceURI;
+	}
+
 	/**
 	 * Starts sending service announcements at regular intervals... 
 	 */

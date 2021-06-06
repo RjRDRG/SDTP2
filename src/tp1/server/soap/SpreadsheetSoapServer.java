@@ -5,6 +5,7 @@ import com.sun.net.httpserver.HttpsConfigurator;
 import com.sun.net.httpserver.HttpsServer;
 import jakarta.xml.ws.Endpoint;
 import tp1.discovery.Discovery;
+import tp1.kafka.sync.SyncPoint;
 import tp1.server.WebServiceType;
 import tp1.resources.SpreadsheetResource;
 import tp1.server.rest.UsersRestServer;
@@ -49,7 +50,8 @@ public class SpreadsheetSoapServer {
 
             server.setExecutor(Executors.newCachedThreadPool());
 
-            Endpoint soapUsersEndpoint = Endpoint.create(new SpreadsheetResource(domain, WebServiceType.SOAP));
+            SyncPoint sp = SyncPoint.getInstance();
+            Endpoint soapUsersEndpoint = Endpoint.create(new SpreadsheetResource(domain, WebServiceType.SOAP, sp));
 
             soapUsersEndpoint.publish(server.createContext(SOAP_USERS_PATH));
 

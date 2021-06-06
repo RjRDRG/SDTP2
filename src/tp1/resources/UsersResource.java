@@ -75,8 +75,6 @@ public class UsersResource implements RestUsers, SoapUsers {
 
 	@Override
 	public User getUser(String userId, String password) throws UsersException {
-		System.out.println("shtyeah");
-
 		User user = users.get(userId);
 
 		if( user == null ) {

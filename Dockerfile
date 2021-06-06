@@ -16,4 +16,3 @@ COPY sheets.ks sheets.ks
 
 # copy truststore
 COPY truststore.ks truststore.ks
-

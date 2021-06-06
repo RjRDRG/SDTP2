@@ -24,7 +24,7 @@ public class UsersRestServer {
 		System.setProperty("java.util.logging.SimpleFormatter.format", "%4$s: %5$s\n");
 	}
 	
-	public static final int PORT = 8080;
+	public static final int PORT = 8082;
 	
 	public static void main(String[] args) {
 		try {
