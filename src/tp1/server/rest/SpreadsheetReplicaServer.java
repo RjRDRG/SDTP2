@@ -5,8 +5,8 @@ import org.glassfish.jersey.server.ResourceConfig;
 import tp1.discovery.Discovery;
 import tp1.kafka.KafkaUtils;
 import tp1.kafka.sync.SyncPoint;
-import tp1.server.WebServiceType;
 import tp1.resources.SpreadsheetResource;
+import tp1.server.WebServiceType;
 import tp1.util.InsecureHostnameVerifier;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -17,7 +17,7 @@ import java.util.logging.Logger;
 
 import static tp1.clients.sheet.SpreadsheetClient.SERVICE;
 
-public class SpreadsheetRestServer {
+public class SpreadsheetReplicaServer {
 
     private static Logger Log = Logger.getLogger(UsersRestServer.class.getName());
 
@@ -26,7 +26,7 @@ public class SpreadsheetRestServer {
         System.setProperty("java.util.logging.SimpleFormatter.format", "%4$s: %5$s\n");
     }
 
-    public static final int PORT = 8080;
+    public static final int PORT = 8081;
 
     public static void main(String[] args) {
         try {
@@ -41,10 +41,8 @@ public class SpreadsheetRestServer {
             ResourceConfig config = new ResourceConfig();
             config.register(new SpreadsheetResource(domain, WebServiceType.REST, sp));
 
-            String serverURI = String.format("http://%s:%s/rest", ip, PORT);
-            JdkHttpServerFactory.createHttpServer(URI.create(serverURI), config);//, SSLContext.getDefault());
-
-            //KafkaUtils.createTopic(domain, 10, 1);
+            String serverURI = String.format("https://%s:%s/rest", ip, PORT);
+            JdkHttpServerFactory.createHttpServer(URI.create(serverURI), config, SSLContext.getDefault());
 
             Discovery discovery = new Discovery( domain, SERVICE ,serverURI);
             SpreadsheetResource.setDiscovery(discovery);
