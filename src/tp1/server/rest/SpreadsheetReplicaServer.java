@@ -44,10 +44,9 @@ public class SpreadsheetReplicaServer {
             String serverURI = String.format("https://%s:%s/rest", ip, PORT);
             JdkHttpServerFactory.createHttpServer(URI.create(serverURI), config, SSLContext.getDefault());
 
-            Discovery discovery = new Discovery( domain, SERVICE ,serverURI);
-            SpreadsheetResource.setDiscovery(discovery);
-            discovery.startSendingAnnouncements();
-            discovery.startCollectingAnnouncements();
+            Discovery.init( domain, SERVICE ,serverURI);
+            Discovery.startSendingAnnouncements();
+            Discovery.startCollectingAnnouncements();
 
             Log.info(String.format("%s Server ready @ %s\n",  SERVICE, serverURI));
 

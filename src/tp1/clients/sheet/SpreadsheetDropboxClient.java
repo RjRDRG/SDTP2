@@ -11,7 +11,6 @@ import org.pac4j.scribe.builder.api.DropboxApi20;
 import tp1.api.Spreadsheet;
 import tp1.api.service.util.Result;
 
-import java.util.Map;
 import java.util.Optional;
 
 public class SpreadsheetDropboxClient implements SpreadsheetRepositoryClient{

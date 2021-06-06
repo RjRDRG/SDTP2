@@ -90,7 +90,7 @@ public class SpreadsheetResource implements RestSpreadsheets, SoapSpreadsheets {
 				KafkaEvent event = json.fromJson(r.value(), KafkaEvent.class);
 
 				try {
-					if (!event.getPublisherURI().equals(discovery.getServiceURI())) //this is replica
+					if (!event.getPublisherURI().equals(Discovery.getServiceURI())) //this is replica
 						switch (r.key()) {
 							case "createSpreadsheet": {
 								CreateSpreadsheetEvent sheetEvent = json.fromJson(event.getJsonPayload(), CreateSpreadsheetEvent.class);
@@ -128,56 +128,6 @@ public class SpreadsheetResource implements RestSpreadsheets, SoapSpreadsheets {
 	}
 
 
-
-	public static void setDiscovery(Discovery discovery) {
-		SpreadsheetResource.discovery = discovery;
-	}
-
-	private final static Map<String, SpreadsheetClient> cachedSpreadSheetClients = new ConcurrentHashMap<>();
-	public static SpreadsheetClient getRemoteSpreadsheetClient(String domainId) {
-		if(cachedSpreadSheetClients.containsKey(domainId))
-			return cachedSpreadSheetClients.get(domainId);
-
-		String serverUrl = discovery.knownUrisOf(domainId, SpreadsheetClient.SERVICE).stream()
-				.findAny()
-				.map(URI::toString)
-				.orElse(null);
-
-		SpreadsheetClient client = null;
-		if(serverUrl != null) {
-			try {
-				client = new SpreadsheetRetryClient(serverUrl);
-				cachedSpreadSheetClients.put(domainId,client);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-
-		return client;
-	}
-
-
-	private UsersClient cachedUserClient;
-	private UsersClient getLocalUsersClient() {
-
-		if(cachedUserClient == null) {
-			String serverUrl = discovery.knownUrisOf(domainId, UsersClient.SERVICE).stream()
-				.findAny()
-				.map(URI::toString)
-				.orElse(null);
-
-			if(serverUrl != null) {
-				try {
-					cachedUserClient = new UsersRetryClient(serverUrl);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}
-
-		return cachedUserClient;
-	}
-
 	public static void throwWebAppException(WebServiceType type, Response.Status status) throws SheetsException {
 		if(type == SOAP)
 			throw new SheetsException(status.name());
@@ -197,7 +147,7 @@ public class SpreadsheetResource implements RestSpreadsheets, SoapSpreadsheets {
 			throwWebAppException(type, Response.Status.BAD_REQUEST);
 
 		String payload = json.toJson(new CreateSpreadsheetEvent(sheet, password));
-		KafkaEvent kafkaEvent = new KafkaEvent(domainId, discovery.getServiceURI(), payload);
+		KafkaEvent kafkaEvent = new KafkaEvent(domainId, Discovery.getServiceURI(), payload);
 
 		System.out.println("2222222DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD");
 
@@ -253,7 +203,7 @@ public class SpreadsheetResource implements RestSpreadsheets, SoapSpreadsheets {
 		}
 
 		String payload = json.toJson(new DeleteSpreadsheetEvent(sheetId, password));
-		KafkaEvent kafkaEvent = new KafkaEvent(domainId, discovery.getServiceURI(), payload);
+		KafkaEvent kafkaEvent = new KafkaEvent(domainId, Discovery.getServiceURI(), payload);
 
 		long sequenceNumber = publisher.publish(domainId, json.toJson(kafkaEvent));
 
@@ -368,7 +318,7 @@ public class SpreadsheetResource implements RestSpreadsheets, SoapSpreadsheets {
 		}
 
 		String payload = json.toJson(new UpdateCellEvent(sheetId, cell, rawValue, userId, password));
-		KafkaEvent kafkaEvent = new KafkaEvent(domainId, discovery.getServiceURI(), payload);
+		KafkaEvent kafkaEvent = new KafkaEvent(domainId, Discovery.getServiceURI(), payload);
 
 		long sequenceNumber = publisher.publish(domainId, json.toJson(kafkaEvent));
 
@@ -413,7 +363,7 @@ public class SpreadsheetResource implements RestSpreadsheets, SoapSpreadsheets {
 		}
 
 		String payload = json.toJson(new ShareSpreadsheetEvent(sheetId, userId, password));
-		KafkaEvent kafkaEvent = new KafkaEvent(domainId, discovery.getServiceURI(), payload);
+		KafkaEvent kafkaEvent = new KafkaEvent(domainId, Discovery.getServiceURI(), payload);
 
 		long sequenceNumber = publisher.publish(domainId, json.toJson(kafkaEvent));
 
@@ -463,7 +413,7 @@ public class SpreadsheetResource implements RestSpreadsheets, SoapSpreadsheets {
 		}
 
 		String payload = json.toJson(new UnshareSpreadsheetEvent(sheetId, userId, password));
-		KafkaEvent kafkaEvent = new KafkaEvent(domainId, discovery.getServiceURI(), payload);
+		KafkaEvent kafkaEvent = new KafkaEvent(domainId, Discovery.getServiceURI(), payload);
 
 		long sequenceNumber = publisher.publish(domainId, json.toJson(kafkaEvent));
 
@@ -504,7 +454,7 @@ public class SpreadsheetResource implements RestSpreadsheets, SoapSpreadsheets {
 	public void deleteUserSpreadsheets(String userId, String password) {
 
 		String payload = json.toJson(new DeleteUserSpreadsheetsEvent(userId, password));
-		KafkaEvent kafkaEvent = new KafkaEvent(domainId, discovery.getServiceURI(), payload);
+		KafkaEvent kafkaEvent = new KafkaEvent(domainId, Discovery.getServiceURI(), payload);
 
 		long sequenceNumber = publisher.publish(domainId, json.toJson(kafkaEvent));
 

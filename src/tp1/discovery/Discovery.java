@@ -71,7 +71,7 @@ public class Discovery {
 		init(DISCOVERY_ADDR, domainId, serviceName, serviceURI);
 	}
 
-	public String getServiceURI() {
+	public static String getServiceURI() {
 		return serviceURI;
 	}
 
