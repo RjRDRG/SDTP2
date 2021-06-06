@@ -1,8 +1,14 @@
 package tp1.discovery;
 
+import tp1.clients.sheet.SpreadsheetClient;
+import tp1.clients.sheet.SpreadsheetRetryClient;
+import tp1.clients.user.UsersClient;
+import tp1.clients.user.UsersRetryClient;
+
 import java.io.IOException;
 import java.net.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 /**
@@ -35,40 +41,40 @@ public class Discovery {
 	private static final String URI_DELIMITER = "\t";
 	private static final String DOMAIN_DELIMITER = ":";
 
-	private InetSocketAddress addr;
-	private String domainId;
-	private String serviceName;
-	private String serviceURI;
-	private Map<String, Set<URI>> servers;
-	private Map<String, Long> timeStamps;
-	private MulticastSocket ms;
+	private static InetSocketAddress addr;
+	private static String domainId;
+	private static String serviceName;
+	private static String serviceURI;
+	private static Map<String, Set<URI>> servers;
+	private static Map<String, Long> timeStamps;
+	private static MulticastSocket ms;
 
 	/**
 	 * @param  serviceName the name of the service to announce
 	 * @param  serviceURI an uri string - representing the contact endpoint of the service being announced
 	 */
-	public Discovery(InetSocketAddress addr, String domainId, String serviceName, String serviceURI) {
-		this.addr = addr;
-		this.domainId = domainId;
-		this.serviceName = serviceName;
-		this.serviceURI  = serviceURI;
-		this.servers = new HashMap<String, Set<URI>>();
-		this.timeStamps = new HashMap<String, Long>();
-		this.ms = null;
+	public static void init(InetSocketAddress addr, String domainId, String serviceName, String serviceURI) {
+		Discovery.addr = addr;
+		Discovery.domainId = domainId;
+		Discovery.serviceName = serviceName;
+		Discovery.serviceURI  = serviceURI;
+		Discovery.servers = new HashMap<String, Set<URI>>();
+		Discovery.timeStamps = new HashMap<String, Long>();
+		Discovery.ms = null;
 	}
 
 	/**
 	 * @param  serviceName the name of the service to announce
 	 * @param  serviceURI an uri string - representing the contact endpoint of the service being announced
 	 */
-	public Discovery(String domainId, String serviceName, String serviceURI) {
-		this(DISCOVERY_ADDR, domainId, serviceName, serviceURI);
+	public static void init(String domainId, String serviceName, String serviceURI) {
+		init(DISCOVERY_ADDR, domainId, serviceName, serviceURI);
 	}
 	
 	/**
 	 * Starts sending service announcements at regular intervals... 
 	 */
-	public void startSendingAnnouncements() {
+	public static void startSendingAnnouncements() {
 		Log.info(String.format("Starting Discovery announcements on: %s for: %s -> %s\n", addr, serviceName, serviceURI));
 
 		byte[] announceBytes = (domainId+ DOMAIN_DELIMITER +serviceName+ URI_DELIMITER +serviceURI).getBytes();
@@ -100,7 +106,7 @@ public class Discovery {
 	/**
 	 * Starts collecting service announcements at regular intervals...
 	 */
-	public void startCollectingAnnouncements() {
+	public static void startCollectingAnnouncements() {
 		try {
 			if(ms == null) {
 				ms = new MulticastSocket(addr.getPort());
@@ -147,7 +153,74 @@ public class Discovery {
 	 * @return an array of URI with the service instances discovered.
 	 * 
 	 */
-	public Set<URI> knownUrisOf(String domain, String service) {
+	public static Set<URI> knownUrisOf(String domain, String service) {
 		return servers.get(domain+DOMAIN_DELIMITER+service);
+	}
+
+
+	private static final Map<String, SpreadsheetClient> cachedSpreadSheetClients = new ConcurrentHashMap<>();
+	public static SpreadsheetClient getRemoteSpreadsheetClient(String domainId) {
+		if(cachedSpreadSheetClients.containsKey(domainId))
+			return cachedSpreadSheetClients.get(domainId);
+
+		String serverUrl = knownUrisOf(domainId, SpreadsheetClient.SERVICE).stream()
+				.findAny()
+				.map(URI::toString)
+				.orElse(null);
+
+		SpreadsheetClient client = null;
+		if(serverUrl != null) {
+			try {
+				client = new SpreadsheetRetryClient(serverUrl);
+				cachedSpreadSheetClients.put(domainId,client);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+
+		return client;
+	}
+
+
+	private static UsersClient cachedUserClient = null;
+	public static UsersClient getLocalUsersClient() {
+
+		if(cachedUserClient == null) {
+			String serverUrl = knownUrisOf(domainId, UsersClient.SERVICE).stream()
+					.findAny()
+					.map(URI::toString)
+					.orElse(null);
+
+			if(serverUrl != null) {
+				try {
+					cachedUserClient = new UsersRetryClient(serverUrl);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		return cachedUserClient;
+	}
+
+	private static SpreadsheetClient cachedSpreadsheetClient = null;
+	public static SpreadsheetClient getLocalSpreadsheetClient() {
+
+		if(cachedSpreadsheetClient == null) {
+			String serverUrl = knownUrisOf(domainId, SpreadsheetClient.SERVICE).stream()
+					.findAny()
+					.map(URI::toString)
+					.orElse(null);
+
+			if(serverUrl != null) {
+				try {
+					cachedSpreadsheetClient = new SpreadsheetRetryClient(serverUrl);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		return cachedSpreadsheetClient;
 	}
 }

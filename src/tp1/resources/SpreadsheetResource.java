@@ -47,8 +47,6 @@ public class SpreadsheetResource implements RestSpreadsheets, SoapSpreadsheets {
 
 	private final WebServiceType type;
 
-	public static Discovery discovery;
-
 	private static Logger Log = Logger.getLogger(SpreadsheetResource.class.getName());
 
 	public SpreadsheetResource(String domainId, WebServiceType type) {
@@ -57,58 +55,6 @@ public class SpreadsheetResource implements RestSpreadsheets, SoapSpreadsheets {
 		this.spreadsheets = new HashMap<>();
 		this.spreadsheetOwners = new HashMap<>();
 		this.engine = SpreadsheetEngineImpl.getInstance();
-	}
-
-
-
-
-	public static void setDiscovery(Discovery discovery) {
-		SpreadsheetResource.discovery = discovery;
-	}
-
-	private final static Map<String, SpreadsheetClient> cachedSpreadSheetClients = new ConcurrentHashMap<>();
-	public static SpreadsheetClient getRemoteSpreadsheetClient(String domainId) {
-		if(cachedSpreadSheetClients.containsKey(domainId))
-			return cachedSpreadSheetClients.get(domainId);
-
-		String serverUrl = discovery.knownUrisOf(domainId, SpreadsheetClient.SERVICE).stream()
-				.findAny()
-				.map(URI::toString)
-				.orElse(null);
-
-		SpreadsheetClient client = null;
-		if(serverUrl != null) {
-			try {
-				client = new SpreadsheetRetryClient(serverUrl);
-				cachedSpreadSheetClients.put(domainId,client);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-
-		return client;
-	}
-
-
-	private UsersClient cachedUserClient;
-	private UsersClient getLocalUsersClient() {
-
-		if(cachedUserClient == null) {
-			String serverUrl = discovery.knownUrisOf(domainId, UsersClient.SERVICE).stream()
-				.findAny()
-				.map(URI::toString)
-				.orElse(null);
-
-			if(serverUrl != null) {
-				try {
-					cachedUserClient = new UsersRetryClient(serverUrl);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}
-
-		return cachedUserClient;
 	}
 
 	public static void throwWebAppException(WebServiceType type, Response.Status status) throws SheetsException {
@@ -133,7 +79,7 @@ public class SpreadsheetResource implements RestSpreadsheets, SoapSpreadsheets {
 
 			String spreadsheetOwner = sheet.getOwner();
 
-			Result<User> result = getLocalUsersClient().getUser(spreadsheetOwner, password);
+			Result<User> result = Discovery.getLocalUsersClient().getUser(spreadsheetOwner, password);
 			if(!result.isOK())
 				throwWebAppException(type, Response.Status.BAD_REQUEST);
 
@@ -170,7 +116,7 @@ public class SpreadsheetResource implements RestSpreadsheets, SoapSpreadsheets {
 				throwWebAppException(type, Response.Status.NOT_FOUND);
 			}
 
-			Result<User> result = getLocalUsersClient().getUser(sheet.getOwner(), password);
+			Result<User> result = Discovery.getLocalUsersClient().getUser(sheet.getOwner(), password);
 			if(result.error() == Result.ErrorCode.FORBIDDEN)
 				throwWebAppException(type, Response.Status.FORBIDDEN);
 			else if(!result.isOK())
@@ -194,7 +140,7 @@ public class SpreadsheetResource implements RestSpreadsheets, SoapSpreadsheets {
 			throwWebAppException(type, Response.Status.NOT_FOUND);
 		}
 
-		Result<User> result = getLocalUsersClient().getUser(userId, password);
+		Result<User> result = Discovery.getLocalUsersClient().getUser(userId, password);
 		if(result.error() == Result.ErrorCode.FORBIDDEN)
 			throwWebAppException(type, Response.Status.FORBIDDEN);
 		else if(!result.isOK())
@@ -291,7 +237,7 @@ public class SpreadsheetResource implements RestSpreadsheets, SoapSpreadsheets {
 				throwWebAppException(type, Response.Status.NOT_FOUND);
 			}
 
-			Result<User> result = getLocalUsersClient().getUser(sheet.getOwner(), password);
+			Result<User> result = Discovery.getLocalUsersClient().getUser(sheet.getOwner(), password);
 			if(result.error() == Result.ErrorCode.FORBIDDEN)
 				throwWebAppException(type, Response.Status.FORBIDDEN);
 			else if(!result.isOK())
@@ -317,7 +263,7 @@ public class SpreadsheetResource implements RestSpreadsheets, SoapSpreadsheets {
 
 			Spreadsheet sheet = spreadsheets.get(sheetId);
 
-			Result<User> result = getLocalUsersClient().getUser(sheet.getOwner(), password);
+			Result<User> result = Discovery.getLocalUsersClient().getUser(sheet.getOwner(), password);
 			if(result.error() == Result.ErrorCode.FORBIDDEN)
 				throwWebAppException(type, Response.Status.FORBIDDEN);
 			else if(!result.isOK())
@@ -336,7 +282,7 @@ public class SpreadsheetResource implements RestSpreadsheets, SoapSpreadsheets {
 	public void deleteUserSpreadsheets(String userId, String password) throws SheetsException {
 		synchronized (this) {
 
-			Result<User> result = getLocalUsersClient().getUser(userId, password);
+			Result<User> result = Discovery.getLocalUsersClient().getUser(userId, password);
 			if(result.error() == Result.ErrorCode.FORBIDDEN)
 				throwWebAppException(type, Response.Status.FORBIDDEN);
 			else if(!result.isOK())

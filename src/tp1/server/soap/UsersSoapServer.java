@@ -34,15 +34,16 @@ public class UsersSoapServer {
     public static void main(String[] args) {
         try {
             String domain = args.length > 0 ? args[0] : "domain0";
+            int port = args.length > 1 ? Integer.parseInt(args[1]) : PORT;
 
             String ip = InetAddress.getLocalHost().getHostAddress();
-            String serverURI = String.format("https://%s:%s/soap", ip, PORT);
+            String serverURI = String.format("https://%s:%s/soap", ip, port);
 
             HttpsURLConnection.setDefaultHostnameVerifier(new InsecureHostnameVerifier());
 
             HttpsConfigurator configurator = new HttpsConfigurator(SSLContext.getDefault());
 
-            HttpsServer server = HttpsServer.create(new InetSocketAddress(ip, PORT), 0);
+            HttpsServer server = HttpsServer.create(new InetSocketAddress(ip, port), 0);
 
             server.setHttpsConfigurator(configurator);
 
@@ -54,10 +55,9 @@ public class UsersSoapServer {
 
             server.start();
 
-            Discovery discovery = new Discovery(  domain, SERVICE, serverURI);
-            UsersResource.setDiscovery(discovery);
-            discovery.startSendingAnnouncements();
-            discovery.startCollectingAnnouncements();
+            Discovery.init(  domain, SERVICE, serverURI);
+            Discovery.startSendingAnnouncements();
+            Discovery.startCollectingAnnouncements();
 
             Log.info(String.format("%s Server ready @ %s\n", SERVICE, serverURI));
         } catch( Exception e) {

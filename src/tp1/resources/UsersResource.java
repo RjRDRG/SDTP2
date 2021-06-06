@@ -42,34 +42,6 @@ public class UsersResource implements RestUsers, SoapUsers {
 		this.type = type;
 	}
 
-
-
-
-	public static void setDiscovery(Discovery discovery) {
-		UsersResource.discovery = discovery;
-	}
-
-	private SpreadsheetClient cachedSpreadsheetClient;
-	private SpreadsheetClient getLocalSpreadsheetClient() {
-
-		if(cachedSpreadsheetClient == null) {
-			String serverUrl = discovery.knownUrisOf(domainId, SpreadsheetClient.SERVICE).stream()
-					.findAny()
-					.map(URI::toString)
-					.orElse(null);
-
-			if(serverUrl != null) {
-				try {
-					cachedSpreadsheetClient = new SpreadsheetRetryClient(serverUrl);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}
-
-		return cachedSpreadsheetClient;
-	}
-
 	public static void throwWebAppException(WebServiceType type, Status status) throws UsersException {
 		if(type == SOAP)
 			throw new UsersException(status.name());
@@ -103,6 +75,8 @@ public class UsersResource implements RestUsers, SoapUsers {
 
 	@Override
 	public User getUser(String userId, String password) throws UsersException {
+		System.out.println("shtyeah");
+
 		User user = users.get(userId);
 
 		if( user == null ) {
@@ -164,7 +138,7 @@ public class UsersResource implements RestUsers, SoapUsers {
 			}
 
 			try {
-				getLocalSpreadsheetClient().deleteUserSpreadsheets(userId, password);
+				Discovery.getLocalSpreadsheetClient().deleteUserSpreadsheets(userId, password);
 			} catch (Exception e) {
 			}
 

@@ -1,10 +1,15 @@
-package tp1.server.rest;
+package tp1.server.proxy;
 
+import com.google.gson.Gson;
 import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
+import tp1.api.Spreadsheet;
+import tp1.clients.sheet.SpreadsheetDropboxClient;
 import tp1.discovery.Discovery;
-import tp1.server.WebServiceType;
+import tp1.resources.SpreadsheetProxyResource;
 import tp1.resources.SpreadsheetResource;
+import tp1.server.WebServiceType;
+import tp1.server.rest.UsersRestServer;
 import tp1.util.InsecureHostnameVerifier;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -15,7 +20,7 @@ import java.util.logging.Logger;
 
 import static tp1.clients.sheet.SpreadsheetClient.SERVICE;
 
-public class SpreadsheetRestServer {
+public class SpreadsheetDropboxServer {
 
     private static Logger Log = Logger.getLogger(UsersRestServer.class.getName());
 
@@ -36,10 +41,10 @@ public class SpreadsheetRestServer {
             HttpsURLConnection.setDefaultHostnameVerifier(new InsecureHostnameVerifier());
 
             ResourceConfig config = new ResourceConfig();
-            config.register(new SpreadsheetResource(domain, WebServiceType.REST));
+            config.register(new SpreadsheetProxyResource(domain, new SpreadsheetDropboxClient()));
 
-            String serverURI = String.format("https://%s:%s/rest", ip, port);
-            JdkHttpServerFactory.createHttpServer(URI.create(serverURI), config, SSLContext.getDefault());
+            String serverURI = String.format("http://%s:%s/rest", ip, port);
+            JdkHttpServerFactory.createHttpServer(URI.create(serverURI), config);
 
             Discovery.init( domain, SERVICE ,serverURI);
             Discovery.startSendingAnnouncements();
