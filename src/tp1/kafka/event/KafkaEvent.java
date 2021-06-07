@@ -2,11 +2,23 @@ package tp1.kafka.event;
 
 public class KafkaEvent {
 
-    private String domainId, publisherURI, jsonPayload;
+    public enum Type {
+        CreateSpreadsheetEvent,
+        DeleteSpreadsheetEvent,
+        DeleteUserSpreadsheetsEvent,
+        ShareSpreadsheetEvent,
+        UnshareSpreadsheetEvent,
+        UpdateCellEvent
+    }
 
-    public KafkaEvent(String domainId, String publisherURI, String jsonPayload) {
+    private String domainId, publisherURI;
+    private Type payloadType;
+    private byte[] jsonPayload;
+
+    public KafkaEvent(String domainId, String publisherURI, Type payloadType, byte[] jsonPayload) {
         this.domainId = domainId;
         this.publisherURI = publisherURI;
+        this.payloadType = payloadType;
         this.jsonPayload = jsonPayload;
     }
 
@@ -29,11 +41,19 @@ public class KafkaEvent {
         this.publisherURI = publisherURI;
     }
 
-    public String getJsonPayload() {
+    public Type getPayloadType() {
+        return payloadType;
+    }
+
+    public void setPayloadType(Type payloadType) {
+        this.payloadType = payloadType;
+    }
+
+    public byte[] getJsonPayload() {
         return jsonPayload;
     }
 
-    public void setJsonPayload(String jsonPayload) {
+    public void setJsonPayload(byte[] jsonPayload) {
         this.jsonPayload = jsonPayload;
     }
 }

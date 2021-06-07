@@ -11,6 +11,10 @@ import org.apache.kafka.clients.admin.NewTopic;
 
 public class KafkaUtils {
 
+	public static final String LOCAL_KAFKA_ADDRESS = "localhost:2181";
+	public static final String KAFKA_ADDRESS = "kafka:2181";
+	public static final String KAFKA_ADDRESSES = KAFKA_ADDRESS;
+
 	public static void createTopics(List<String> topics) {
 		topics.forEach(topic -> createTopic(topic));
 	}
@@ -34,7 +38,7 @@ public class KafkaUtils {
 
 	static private AdminClient create() {
 		Properties props = new Properties();
-		props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+		props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_ADDRESS);
 		props.put(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, "5000");
 		return AdminClient.create(props);
 	}

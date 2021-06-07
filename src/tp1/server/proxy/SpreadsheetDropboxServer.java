@@ -34,7 +34,6 @@ public class SpreadsheetDropboxServer {
     public static void main(String[] args) {
         try {
             String domain = args.length > 0 ? args[0] : "domain0";
-            int port = args.length > 1 ? Integer.parseInt(args[1]) : PORT;
 
             String ip = InetAddress.getLocalHost().getHostAddress();
 
@@ -43,7 +42,7 @@ public class SpreadsheetDropboxServer {
             ResourceConfig config = new ResourceConfig();
             config.register(new SpreadsheetProxyResource(domain, new SpreadsheetDropboxClient()));
 
-            String serverURI = String.format("http://%s:%s/rest", ip, port);
+            String serverURI = String.format("http://%s:%s/rest", ip, PORT);
             JdkHttpServerFactory.createHttpServer(URI.create(serverURI), config);
 
             Discovery.init( domain, SERVICE ,serverURI);

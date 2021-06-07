@@ -36,15 +36,13 @@ public class SpreadsheetRestServer {
 
             HttpsURLConnection.setDefaultHostnameVerifier(new InsecureHostnameVerifier());
 
-            SyncPoint sp = SyncPoint.getInstance();
-
             ResourceConfig config = new ResourceConfig();
-            config.register(new SpreadsheetResource(domain, WebServiceType.REST, sp));
+            config.register(new SpreadsheetResource(domain, WebServiceType.REST));
 
             String serverURI = String.format("https://%s:%s/rest", ip, PORT);
             JdkHttpServerFactory.createHttpServer(URI.create(serverURI), config, SSLContext.getDefault());
 
-            Discovery.init( domain, SERVICE ,serverURI);
+            Discovery.init(domain, SERVICE ,serverURI);
             Discovery.startSendingAnnouncements();
             Discovery.startCollectingAnnouncements();
 

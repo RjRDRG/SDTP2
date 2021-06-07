@@ -147,6 +147,6 @@ class ErrorResult<T> implements Result<T> {
 	}
 
 	public String toString() {
-		return "(" + error() + ")";
+		return "(" + error() + " " + exception.getMessage() + ")";
 	}
 }

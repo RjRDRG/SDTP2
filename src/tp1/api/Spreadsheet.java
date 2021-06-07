@@ -1,5 +1,6 @@
 package tp1.api;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -47,6 +48,17 @@ public class Spreadsheet implements AbstractSpreadsheet {
 	public Spreadsheet(Spreadsheet s, String sheetId, String domainId) {
 		super();
 		this.sheetId = sheetId;
+		this.owner = s.owner;
+		this.sheetURL = domainId+"#id#"+sheetId;
+		this.rows = s.rows;
+		this.columns = s.columns;
+		this.sharedWith = Optional.ofNullable(s.sharedWith).orElse(new HashSet<>());
+		this.rawValues = Optional.ofNullable(s.rawValues).orElse(new String[rows][columns]);
+	}
+
+	public Spreadsheet(Spreadsheet s, String domainId) {
+		super();
+		this.sheetId = s.getSheetId();
 		this.owner = s.owner;
 		this.sheetURL = domainId+"#id#"+sheetId;
 		this.rows = s.rows;
@@ -191,5 +203,18 @@ public class Spreadsheet implements AbstractSpreadsheet {
 		} catch (Exception e) {
 			return null;
 		}
+	}
+
+	@Override
+	public String toString() {
+		return "Spreadsheet{" +
+				"sheetId='" + sheetId + '\'' +
+				", owner='" + owner + '\'' +
+				", sheetURL='" + sheetURL + '\'' +
+				", rows=" + rows +
+				", columns=" + columns +
+				", sharedWith=" + sharedWith +
+				", rawValues=" + Arrays.toString(rawValues) +
+				'}';
 	}
 }

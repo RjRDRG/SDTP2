@@ -8,7 +8,7 @@ import java.util.Map.Entry;
 public class SyncPoint
 {
 	private static SyncPoint instance;
-	public static SyncPoint getInstance() {
+	public synchronized static SyncPoint getInstance() {
 		if( instance == null)
 			instance = new SyncPoint();
 		return instance;
@@ -20,6 +20,7 @@ public class SyncPoint
 	
 	private SyncPoint() {
 		result = new HashMap<Long,String>();
+		version = -1L;
 	}
 	
 	/**

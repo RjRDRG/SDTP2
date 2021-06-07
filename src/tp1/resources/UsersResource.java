@@ -136,8 +136,9 @@ public class UsersResource implements RestUsers, SoapUsers {
 			}
 
 			try {
-				Discovery.getLocalSpreadsheetClient().deleteUserSpreadsheets(userId, password);
+				Discovery.getLocalSpreadsheetClient().deleteUserSpreadsheets(userId, password).value();
 			} catch (Exception e) {
+				e.printStackTrace();
 			}
 
 			return users.remove(userId);
