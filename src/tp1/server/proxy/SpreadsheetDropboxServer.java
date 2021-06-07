@@ -42,8 +42,8 @@ public class SpreadsheetDropboxServer {
             ResourceConfig config = new ResourceConfig();
             config.register(new SpreadsheetProxyResource(domain, new SpreadsheetDropboxClient()));
 
-            String serverURI = String.format("http://%s:%s/rest", ip, PORT);
-            JdkHttpServerFactory.createHttpServer(URI.create(serverURI), config);
+            String serverURI = String.format("https://%s:%s/rest", ip, PORT);
+            JdkHttpServerFactory.createHttpServer(URI.create(serverURI), config, SSLContext.getDefault());
 
             Discovery.init( domain, SERVICE ,serverURI);
             Discovery.startSendingAnnouncements();

@@ -143,19 +143,15 @@ public class SpreadsheetProxyResource implements RestSpreadsheets {
             throwWebAppException(type, Response.Status.NOT_FOUND);
         }
 
-        try {
-            Result<User> result = Discovery.getLocalUsersClient().getUser(userId, password);
-            if (result.error() == Result.ErrorCode.FORBIDDEN)
-                throwWebAppException(type, Response.Status.FORBIDDEN);
-            else if (!result.isOK())
-                throwWebAppException(type, Response.Status.BAD_REQUEST);
+        Result<User> result = Discovery.getLocalUsersClient().getUser(userId, password);
+        if (result.error() == Result.ErrorCode.FORBIDDEN)
+            throwWebAppException(type, Response.Status.FORBIDDEN);
+        else if (!result.isOK())
+            throwWebAppException(type, Response.Status.BAD_REQUEST);
 
-            if (!userId.equals(sheet.getOwner())) {
-                if (!sheet.getSharedWith().stream().anyMatch(user -> user.contains(userId)))
-                    throwWebAppException(type, Response.Status.FORBIDDEN);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (!userId.equals(sheet.getOwner())) {
+            if (!sheet.getSharedWith().stream().anyMatch(user -> user.contains(userId)))
+                throwWebAppException(type, Response.Status.FORBIDDEN);
         }
 
         return sheet;
@@ -215,6 +211,8 @@ public class SpreadsheetProxyResource implements RestSpreadsheets {
 
         synchronized(this) {
             Spreadsheet spreadsheet = getSpreadsheet(sheetId, userId, password);
+
+            System.out.println(sheetId + " " + spreadsheet.toString());
 
             try {
                 Pair<Integer,Integer> coordinates =  Cell.CellId2Indexes(cell);

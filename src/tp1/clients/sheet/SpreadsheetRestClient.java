@@ -160,7 +160,7 @@ public class SpreadsheetRestClient implements SpreadsheetClient {
     @Override
     public Result<Void> deleteUserSpreadsheets(String userId, String password) {
         try {
-            Response r = target.path("spreadsheets").path(userId).queryParam("password", password).request()
+            Response r = target.path("all").path(userId).queryParam("password", password).request()
                     .accept(MediaType.APPLICATION_JSON)
                     .delete();
 
