@@ -15,8 +15,6 @@ import java.util.Optional;
 
 public class SpreadsheetDropboxClient implements SpreadsheetRepositoryClient{
 
-    public SpreadsheetDropboxClient() {}
-
     @Override
     public Result<Void> createDirectory(String directoryPath) {
         try {

@@ -34,13 +34,18 @@ public class SpreadsheetDropboxServer {
     public static void main(String[] args) {
         try {
             String domain = args.length > 0 ? args[0] : "domain0";
+            boolean dumpState = args.length > 1 && Boolean.parseBoolean(args[1]);
+
+            SpreadsheetDropboxClient dropboxClient = new SpreadsheetDropboxClient();
+
+            if(dumpState) dropboxClient.delete("/"+domain);
 
             String ip = InetAddress.getLocalHost().getHostAddress();
 
             HttpsURLConnection.setDefaultHostnameVerifier(new InsecureHostnameVerifier());
 
             ResourceConfig config = new ResourceConfig();
-            config.register(new SpreadsheetProxyResource(domain, new SpreadsheetDropboxClient()));
+            config.register(new SpreadsheetProxyResource(domain, dropboxClient));
 
             String serverURI = String.format("https://%s:%s/rest", ip, PORT);
             JdkHttpServerFactory.createHttpServer(URI.create(serverURI), config, SSLContext.getDefault());
