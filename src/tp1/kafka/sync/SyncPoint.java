@@ -16,13 +16,16 @@ public class SyncPoint
 
 	private Map<Long,String> result;
 	private long version;
-	
-	
+
 	private SyncPoint() {
 		result = new HashMap<Long,String>();
 		version = -1L;
 	}
-	
+
+	public synchronized static long getVersion() {
+		return instance.version;
+	}
+
 	/**
 	 * Waits for version to be at least equals to n
 	 */
@@ -30,9 +33,7 @@ public class SyncPoint
 		while( version < n) {
 			try {
 				wait();
-			} catch (InterruptedException e) {
-				// do nothing
-			}
+			} catch (InterruptedException ignored) { }
 		}
 	}
 
@@ -63,12 +64,8 @@ public class SyncPoint
 	/**
 	 * Cleans up results that will not be consumed
 	 */
-	public synchronized void cleanupUntil( long n) {
-		Iterator<Entry<Long,String>> it = result.entrySet().iterator();
-		while( it.hasNext()) {
-			if( it.next().getKey() < n)
-				it.remove();
-		}
+	public synchronized void cleanupUntil(long n) {
+		result.entrySet().removeIf(longStringEntry -> longStringEntry.getKey() < n);
 	}
 
 }

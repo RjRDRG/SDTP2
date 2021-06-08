@@ -284,11 +284,7 @@ public class SpreadsheetResource implements RestSpreadsheets, SoapSpreadsheets {
 
 			Set<String> sheets = spreadsheetOwners.get(userId);
 
-			sheets.forEach(id -> {
-				spreadsheets.remove(id);
-				System.out.println("userId, " + id);
-			});
-			System.out.println("\n");
+			sheets.forEach(spreadsheets::remove);
 			spreadsheetOwners.remove(userId);
 		}
 	}

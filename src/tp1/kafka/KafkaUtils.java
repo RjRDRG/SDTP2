@@ -11,9 +11,8 @@ import org.apache.kafka.clients.admin.NewTopic;
 
 public class KafkaUtils {
 
-	public static final String LOCAL_KAFKA_ADDRESS = "localhost:2181";
-	public static final String KAFKA_ADDRESS = "kafka:2181";
-	public static final String KAFKA_ADDRESSES = KAFKA_ADDRESS;
+	public static final String KAFKA_ADDRESS = "kafka:9092";
+	//public static final String KAFKA_ADDRESS = "localhost:9092";
 
 	public static void createTopics(List<String> topics) {
 		topics.forEach(topic -> createTopic(topic));

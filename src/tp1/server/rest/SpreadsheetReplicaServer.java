@@ -2,14 +2,11 @@ package tp1.server.rest;
 
 import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
-import tp1.api.Spreadsheet;
 import tp1.discovery.Discovery;
-import tp1.kafka.KafkaUtils;
 import tp1.kafka.sync.SyncPoint;
 import tp1.resources.SpreadsheetReplicatedResource;
-import tp1.resources.SpreadsheetResource;
-import tp1.server.WebServiceType;
 import tp1.util.InsecureHostnameVerifier;
+import tp1.util.VersionFilter;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -40,10 +37,12 @@ public class SpreadsheetReplicaServer {
 
             SyncPoint sp = SyncPoint.getInstance();
 
-            ResourceConfig config = new ResourceConfig();
-            config.register(new SpreadsheetReplicatedResource(domain, sp));
-
             String serverURI = String.format("https://%s:%s/rest", ip, PORT);
+
+            ResourceConfig config = new ResourceConfig();
+            config.register(new SpreadsheetReplicatedResource(domain, sp, serverURI));
+            config.register(new VersionFilter());
+
             JdkHttpServerFactory.createHttpServer(URI.create(serverURI), config, SSLContext.getDefault());
 
             Discovery.init(domain, SERVICE ,serverURI);
@@ -51,8 +50,6 @@ public class SpreadsheetReplicaServer {
             Discovery.startCollectingAnnouncements();
 
             Log.info(String.format("%s Server ready @ %s\n",  SERVICE, serverURI));
-
-            //More code can be executed here...
         } catch( Exception e) {
             Log.severe(e.getMessage());
         }

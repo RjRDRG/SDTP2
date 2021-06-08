@@ -3,8 +3,6 @@ package tp1.server.rest;
 import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import tp1.discovery.Discovery;
-import tp1.kafka.KafkaUtils;
-import tp1.kafka.sync.SyncPoint;
 import tp1.server.WebServiceType;
 import tp1.resources.SpreadsheetResource;
 import tp1.util.InsecureHostnameVerifier;
@@ -47,8 +45,6 @@ public class SpreadsheetRestServer {
             Discovery.startCollectingAnnouncements();
 
             Log.info(String.format("%s Server ready @ %s\n",  SERVICE, serverURI));
-
-            //More code can be executed here...
         } catch( Exception e) {
             Log.severe(e.getMessage());
         }

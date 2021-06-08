@@ -26,5 +26,5 @@ public interface SpreadsheetClient {
 
     Result<Void> unshareSpreadsheet( String sheetId, String userId,  String password);
 
-    Result<Void> deleteUserSpreadsheets(String userId, String password);
+    Result<Void> deleteUserSpreadsheets(long version, String userId, String password);
 }

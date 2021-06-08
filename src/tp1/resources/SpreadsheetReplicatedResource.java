@@ -3,25 +3,22 @@ package tp1.resources;
 import com.google.gson.Gson;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.WebApplicationException;
-import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import tp1.api.Spreadsheet;
 import tp1.api.User;
 import tp1.api.engine.SpreadsheetEngine;
-import tp1.api.service.rest.RestSpreadsheets;
+import tp1.api.service.rest.RestSpreadsheetsReplicated;
 import tp1.api.service.soap.SheetsException;
-import tp1.api.service.soap.SoapSpreadsheets;
 import tp1.api.service.util.Result;
 import tp1.discovery.Discovery;
 import tp1.impl.engine.SpreadsheetEngineImpl;
 import tp1.kafka.KafkaPublisher;
 import tp1.kafka.KafkaSubscriber;
-import tp1.kafka.KafkaUtils;
 import tp1.kafka.RecordProcessor;
 import tp1.kafka.event.*;
 import tp1.kafka.sync.SyncPoint;
-import tp1.server.WebServiceType;
 import tp1.util.Cell;
 import tp1.util.CellRange;
 import tp1.util.InvalidCellIdException;
@@ -29,12 +26,10 @@ import tp1.util.InvalidCellIdException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-import static tp1.kafka.KafkaUtils.KAFKA_ADDRESSES;
-import static tp1.server.WebServiceType.REST;
-import static tp1.server.WebServiceType.SOAP;
+import static tp1.kafka.KafkaUtils.KAFKA_ADDRESS;
 
 @Singleton
-public class SpreadsheetReplicatedResource implements RestSpreadsheets, SoapSpreadsheets {
+public class SpreadsheetReplicatedResource implements RestSpreadsheetsReplicated {
 
 	private final String domainId;
 
@@ -43,15 +38,15 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets, SoapSpre
 
 	private final SpreadsheetEngine engine;
 
-	private final WebServiceType type;
-
 	private KafkaPublisher publisher;
 	private final Gson json;
 	private final SyncPoint sp;
 
-	public SpreadsheetReplicatedResource(String domainId, SyncPoint sp) {
+	private final String uri;
+
+	public SpreadsheetReplicatedResource(String domainId, SyncPoint sp, String uri) {
 		this.domainId = domainId;
-		this.type = REST;
+		this.uri = uri;
 		this.spreadsheets = new HashMap<>();
 		this.spreadsheetOwners = new HashMap<>();
 		this.engine = SpreadsheetEngineImpl.getInstance();
@@ -60,8 +55,12 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets, SoapSpre
 		this.sp = sp;
 		this.publisher = null;
 
+		registerInKafka();
+	}
+
+	private void registerInKafka() {
 		try {
-			KafkaUtils.createTopic(domainId);
+			this.publisher = KafkaPublisher.createPublisher(KAFKA_ADDRESS);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -71,29 +70,22 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets, SoapSpre
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-
-		try {
-			publisher = KafkaPublisher.createPublisher(KAFKA_ADDRESSES);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
 	}
 
 	private void kafkaSubscriber(String domainId) {
 		List<String> topicList = new ArrayList<>();
 		topicList.add(domainId);
-		KafkaSubscriber subscriber = KafkaSubscriber.createSubscriber(KAFKA_ADDRESSES , topicList);
+		KafkaSubscriber subscriber = KafkaSubscriber.createSubscriber(KAFKA_ADDRESS , topicList);
 
 		subscriber.start (new RecordProcessor() {
 			@Override
 			public void onReceive(ConsumerRecord<String, String> r) {
-				System.out.println("Sequence Number: " + r.topic() + ", " + r.offset() + " -> " + r.value());
-
 				KafkaEvent event = json.fromJson(r.value(), KafkaEvent.class);
 
+				System.out.println(uri + " -> Received " + r.offset());
+
 				try {
-					if (!event.getPublisherURI().equals(Discovery.getServiceURI()))
+					if (!event.getPublisherURI().equals(Discovery.getServiceURI())) {
 						switch (event.getPayloadType()) {
 							case CreateSpreadsheetEvent -> {
 								CreateSpreadsheetEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), CreateSpreadsheetEvent.class);
@@ -120,34 +112,24 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets, SoapSpre
 								deleteUserSpreadsheetsEventConsumer(sheetEvent);
 							}
 						}
-					else {
-						sp.setResult(r.offset(), r.value());
 					}
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
+
+				sp.setResult(r.offset(), r.value());
 			}
 		});
 	}
 
-
-	public static void throwWebAppException(WebServiceType type, Response.Status status) throws SheetsException {
-		if(type == SOAP)
-			throw new SheetsException(status.name());
-		else
-			throw new WebApplicationException(status);
-	}
-
-
-
 	@Override
-	public String createSpreadsheet(Spreadsheet sheet, String password) throws SheetsException {
+	public String createSpreadsheet(Long version, Spreadsheet sheet, String password) throws SheetsException {
 
 		if( sheet == null || password == null)
-			throwWebAppException(type, Response.Status.BAD_REQUEST);
+			throw new WebApplicationException(Status.BAD_REQUEST);
 
 		if (sheet.getColumns() <= 0 || sheet.getRows() <= 0)
-			throwWebAppException(type, Response.Status.BAD_REQUEST);
+			throw new WebApplicationException(Status.BAD_REQUEST);
 
 		sheet.setSheetId(UUID.randomUUID().toString());
 
@@ -155,11 +137,6 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets, SoapSpre
 		KafkaEvent kafkaEvent = new KafkaEvent(domainId, Discovery.getServiceURI(), KafkaEvent.Type.CreateSpreadsheetEvent, payload);
 
 		long sequenceNumber = publisher.publish(domainId, json.toJson(kafkaEvent));
-
-		if(sequenceNumber >= 0)
-			System.out.println("Message published with sequence number: " + sequenceNumber);
-		else
-			System.out.println("Failed to publish message");
 
 		KafkaEvent event = json.fromJson(sp.waitForResult(sequenceNumber), KafkaEvent.class);
 		CreateSpreadsheetEvent sheetEvent =
@@ -178,7 +155,7 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets, SoapSpre
 
 			Result<User> result = Discovery.getLocalUsersClient().getUser(spreadsheetOwner, password);
 			if(!result.isOK())
-				throwWebAppException(type, Response.Status.BAD_REQUEST);
+				throw new WebApplicationException(Status.BAD_REQUEST);
 
 			Spreadsheet spreadsheet = new Spreadsheet(sheet,domainId);
 
@@ -194,21 +171,16 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets, SoapSpre
 	}
 
 	@Override
-	public void deleteSpreadsheet(String sheetId, String password) throws SheetsException {
+	public void deleteSpreadsheet(Long version, String sheetId, String password) throws SheetsException {
 
 		if( sheetId == null || password == null ) {
-			throwWebAppException(type, Response.Status.BAD_REQUEST);
+			throw new WebApplicationException(Status.BAD_REQUEST);
 		}
 
 		byte[] payload = json.toJson(new DeleteSpreadsheetEvent(sheetId, password)).getBytes(StandardCharsets.ISO_8859_1);;
 		KafkaEvent kafkaEvent = new KafkaEvent(domainId, Discovery.getServiceURI(), KafkaEvent.Type.DeleteSpreadsheetEvent, payload);
 
 		long sequenceNumber = publisher.publish(domainId, json.toJson(kafkaEvent));
-
-		if(sequenceNumber >= 0)
-			System.out.println("Message published with sequence number: " + sequenceNumber);
-		else
-			System.out.println("Failed to publish message");
 
 		KafkaEvent event = json.fromJson(sp.waitForResult(sequenceNumber), KafkaEvent.class);
 		DeleteSpreadsheetEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), DeleteSpreadsheetEvent.class);
@@ -224,14 +196,14 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets, SoapSpre
 			Spreadsheet sheet = spreadsheets.get(sheetId);
 
 			if( sheet == null ) {
-				throwWebAppException(type, Response.Status.NOT_FOUND);
+				throw new WebApplicationException(Status.NOT_FOUND);
 			}
 
 			Result<User> result = Discovery.getLocalUsersClient().getUser(sheet.getOwner(), password);
 			if(result.error() == Result.ErrorCode.FORBIDDEN)
-				throwWebAppException(type, Response.Status.FORBIDDEN);
+				throw new WebApplicationException(Status.FORBIDDEN);
 			else if(!result.isOK())
-				throwWebAppException(type, Response.Status.BAD_REQUEST);
+				throw new WebApplicationException(Status.BAD_REQUEST);
 
 			spreadsheetOwners.get(sheet.getOwner()).remove(sheetId);
 			spreadsheets.remove(sheetId);
@@ -239,92 +211,96 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets, SoapSpre
 	}
 
 	@Override
-	public Spreadsheet getSpreadsheet(String sheetId, String userId, String password) throws SheetsException {
+	public Spreadsheet getSpreadsheet(Long version, String sheetId, String userId, String password) throws SheetsException {
 
 		if( sheetId == null || userId == null ) {
-			throwWebAppException(type, Response.Status.BAD_REQUEST);
+			throw new WebApplicationException(Status.BAD_REQUEST);
 		}
+
+		System.out.println(uri + " -> Waiting for " + version + " current version is " + SyncPoint.getVersion());
+
+		sp.waitForResult(version);
 
 		Spreadsheet sheet = spreadsheets.get(sheetId);
 
 		if( sheet == null ) {
-			throwWebAppException(type, Response.Status.NOT_FOUND);
+			throw new WebApplicationException(Status.NOT_FOUND);
 		}
 
 		Result<User> result = Discovery.getLocalUsersClient().getUser(userId, password);
-		if(result.error() == Result.ErrorCode.FORBIDDEN)
-			throwWebAppException(type, Response.Status.FORBIDDEN);
-		else if(!result.isOK())
-			throwWebAppException(type, Response.Status.BAD_REQUEST);
+		if(result.error() == Result.ErrorCode.FORBIDDEN) {
+			throw new WebApplicationException(Status.FORBIDDEN);
+		}
+		else if(result.error() == Result.ErrorCode.NOT_FOUND) {
+			throw new WebApplicationException(Status.NOT_FOUND);
+		}
+		else if(!result.isOK()) {
+			throw new WebApplicationException(Status.BAD_REQUEST);
+		}
 
 		if (!userId.equals(sheet.getOwner())) {
-
 			if (!sheet.getSharedWith().stream().anyMatch(user -> user.contains(userId)))
-				throwWebAppException(type, Response.Status.FORBIDDEN);
-
+				throw new WebApplicationException(Status.FORBIDDEN);
 		}
 
 		return sheet;
 	}
 
 	@Override
-	public String[][] getReferencedSpreadsheetValues(String sheetId, String userId, String range) throws SheetsException {
+	public String[][] getReferencedSpreadsheetValues(Long version, String sheetId, String userId, String range) throws SheetsException {
 
 		if( sheetId == null || userId == null || range == null) {
-			throwWebAppException(type, Response.Status.BAD_REQUEST);
+			throw new WebApplicationException(Status.BAD_REQUEST);
 		}
+
+		sp.waitForResult(version);
 
 		Spreadsheet spreadsheet = spreadsheets.get(sheetId);
 
 		if( spreadsheet == null ) {
-			throwWebAppException(type, Response.Status.NOT_FOUND);
+			throw new WebApplicationException(Status.NOT_FOUND);
 		}
 
 		if (!userId.equals(spreadsheet.getOwner()) && !spreadsheet.getSharedWith().contains(userId)) {
-			throwWebAppException(type, Response.Status.BAD_REQUEST);
+			throw new WebApplicationException(Status.BAD_REQUEST);
 		}
 
 		String[][] result = null;
 		try {
 			result = engine.computeSpreadsheetValues(spreadsheet);
 		} catch (Exception exception) {
-			throwWebAppException(type, Response.Status.BAD_REQUEST);
+			throw new WebApplicationException(Status.BAD_REQUEST);
 		}
 
 		return new CellRange(range).extractRangeValuesFrom(result);
 	}
 
 	@Override
-	public String[][] getSpreadsheetValues(String sheetId, String userId, String password) throws SheetsException {
+	public String[][] getSpreadsheetValues(Long version, String sheetId, String userId, String password) throws SheetsException {
 
-		Spreadsheet spreadsheet = getSpreadsheet(sheetId, userId, password);
+		Spreadsheet spreadsheet = getSpreadsheet(version, sheetId, userId, password);
 
 		String[][] result = null;
 		try {
 			result = engine.computeSpreadsheetValues(spreadsheet);
 		} catch (Exception exception) {
-			throwWebAppException(type, Response.Status.BAD_REQUEST);
+			throw new WebApplicationException(Status.BAD_REQUEST);
 		}
 
 		return result;
 	}
 
 	@Override
-	public void updateCell(String sheetId, String cell, String rawValue, String userId, String password) throws SheetsException {
+	public void updateCell(Long version, String sheetId, String cell, String rawValue, String userId, String password) throws SheetsException {
 
 		if( sheetId == null || cell == null || rawValue == null || userId == null || password == null) {
-			throwWebAppException(type, Response.Status.BAD_REQUEST);
+			throw new WebApplicationException(Status.BAD_REQUEST);
 		}
 
 		byte[] payload = json.toJson(new UpdateCellEvent(sheetId, cell, rawValue, userId, password)).getBytes(StandardCharsets.ISO_8859_1);;
 		KafkaEvent kafkaEvent = new KafkaEvent(domainId, Discovery.getServiceURI(), KafkaEvent.Type.UpdateCellEvent, payload);
 
 		long sequenceNumber = publisher.publish(domainId, json.toJson(kafkaEvent));
-
-		if(sequenceNumber >= 0)
-			System.out.println("Message published with sequence number: " + sequenceNumber);
-		else
-			System.out.println("Failed to publish message");
 
 		KafkaEvent event = json.fromJson(sp.waitForResult(sequenceNumber), KafkaEvent.class);
 		UpdateCellEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), UpdateCellEvent.class);
@@ -340,14 +316,14 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets, SoapSpre
 
 		synchronized(this) {
 
-			Spreadsheet spreadsheet = getSpreadsheet(sheetId, userId, password);
+			Spreadsheet spreadsheet = getSpreadsheet(SyncPoint.getVersion(), sheetId, userId, password);
 
 			try {
 				Pair<Integer,Integer> coordinates =  Cell.CellId2Indexes(cell);
 
 				spreadsheet.placeCellRawValue(coordinates.getLeft(),coordinates.getRight(), rawValue);
 			} catch (InvalidCellIdException e) {
-				throwWebAppException(type, Response.Status.BAD_REQUEST);
+				throw new WebApplicationException(Status.BAD_REQUEST);
 			}
 
 		}
@@ -356,21 +332,16 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets, SoapSpre
 
 
 	@Override
-	public void shareSpreadsheet(String sheetId, String userId, String password) throws SheetsException {
+	public void shareSpreadsheet(Long version, String sheetId, String userId, String password) throws SheetsException {
 
 		if( sheetId == null || userId == null || password == null ) {
-			throwWebAppException(type, Response.Status.BAD_REQUEST);
+			throw new WebApplicationException(Status.BAD_REQUEST);
 		}
 
 		byte[] payload = json.toJson(new ShareSpreadsheetEvent(sheetId, userId, password)).getBytes(StandardCharsets.ISO_8859_1);;
 		KafkaEvent kafkaEvent = new KafkaEvent(domainId, Discovery.getServiceURI(), KafkaEvent.Type.ShareSpreadsheetEvent, payload);
 
 		long sequenceNumber = publisher.publish(domainId, json.toJson(kafkaEvent));
-
-		if(sequenceNumber >= 0)
-			System.out.println("Message published with sequence number: " + sequenceNumber);
-		else
-			System.out.println("Failed to publish message");
 
 		KafkaEvent event = json.fromJson(sp.waitForResult(sequenceNumber), KafkaEvent.class);
 		ShareSpreadsheetEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), ShareSpreadsheetEvent.class);
@@ -387,40 +358,35 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets, SoapSpre
 			Spreadsheet sheet = spreadsheets.get(sheetId);
 
 			if( sheet == null ) {
-				throwWebAppException(type, Response.Status.NOT_FOUND);
+				throw new WebApplicationException(Status.NOT_FOUND);
 			}
 
 			Result<User> result = Discovery.getLocalUsersClient().getUser(sheet.getOwner(), password);
 			if(result.error() == Result.ErrorCode.FORBIDDEN)
-				throwWebAppException(type, Response.Status.FORBIDDEN);
+				throw new WebApplicationException(Status.FORBIDDEN);
 			else if(!result.isOK())
-				throwWebAppException(type, Response.Status.BAD_REQUEST);
+				throw new WebApplicationException(Status.BAD_REQUEST);
 
 			Set<String> sharedWith = sheet.getSharedWith();
 
 			if (sharedWith.contains(userId))
-				throwWebAppException(type, Response.Status.CONFLICT);
+				throw new WebApplicationException(Status.CONFLICT);
 
 			sharedWith.add(userId);
 		}
 	}
 
 	@Override
-	public void unshareSpreadsheet(String sheetId, String userId, String password) throws SheetsException {
+	public void unshareSpreadsheet(Long version, String sheetId, String userId, String password) throws SheetsException {
 
 		if( sheetId == null || userId == null || password == null ) {
-			throwWebAppException(type, Response.Status.BAD_REQUEST);
+			throw new WebApplicationException(Status.BAD_REQUEST);
 		}
 
 		byte[] payload = json.toJson(new UnshareSpreadsheetEvent(sheetId, userId, password)).getBytes(StandardCharsets.ISO_8859_1);;
 		KafkaEvent kafkaEvent = new KafkaEvent(domainId, Discovery.getServiceURI(), KafkaEvent.Type.UnshareSpreadsheetEvent, payload);
 
 		long sequenceNumber = publisher.publish(domainId, json.toJson(kafkaEvent));
-
-		if(sequenceNumber >= 0)
-			System.out.println("Message published with sequence number: " + sequenceNumber);
-		else
-			System.out.println("Failed to publish message");
 
 		KafkaEvent event = json.fromJson(sp.waitForResult(sequenceNumber), KafkaEvent.class);
 		UnshareSpreadsheetEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), UnshareSpreadsheetEvent.class);
@@ -438,31 +404,26 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets, SoapSpre
 
 			Result<User> result = Discovery.getLocalUsersClient().getUser(sheet.getOwner(), password);
 			if(result.error() == Result.ErrorCode.FORBIDDEN)
-				throwWebAppException(type, Response.Status.FORBIDDEN);
+				throw new WebApplicationException(Status.FORBIDDEN);
 			else if(!result.isOK())
-				throwWebAppException(type, Response.Status.BAD_REQUEST);
+				throw new WebApplicationException(Status.BAD_REQUEST);
 
 			Set<String> sharedWith = sheet.getSharedWith();
 
 			if (!sharedWith.contains(userId))
-				throwWebAppException(type, Response.Status.NOT_FOUND);
+				throw new WebApplicationException(Status.NOT_FOUND);
 
 			sharedWith.remove(userId);
 		}
 	}
 
 	@Override
-	public void deleteUserSpreadsheets(String userId, String password) throws SheetsException {
+	public void deleteUserSpreadsheets(Long version, String userId, String password) throws SheetsException {
 
 		byte[] payload = json.toJson(new DeleteUserSpreadsheetsEvent(userId, password)).getBytes(StandardCharsets.ISO_8859_1);
 		KafkaEvent kafkaEvent = new KafkaEvent(domainId, Discovery.getServiceURI(), KafkaEvent.Type.DeleteUserSpreadsheetsEvent, payload);
 
 		long sequenceNumber = publisher.publish(domainId, json.toJson(kafkaEvent));
-
-		if(sequenceNumber >= 0)
-			System.out.println("Message published with sequence number: " + sequenceNumber);
-		else
-			System.out.println("Failed to publish message");
 
 		KafkaEvent event = json.fromJson(sp.waitForResult(sequenceNumber), KafkaEvent.class);
 		DeleteUserSpreadsheetsEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), DeleteUserSpreadsheetsEvent.class);
@@ -477,13 +438,13 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets, SoapSpre
 
 			Result<User> result = Discovery.getLocalUsersClient().getUser(userId, password);
 			if(result.error() == Result.ErrorCode.FORBIDDEN)
-				throwWebAppException(type, Response.Status.FORBIDDEN);
+				throw new WebApplicationException(Status.FORBIDDEN);
 			else if(!result.isOK())
-				throwWebAppException(type, Response.Status.BAD_REQUEST);
+				throw new WebApplicationException(Status.BAD_REQUEST);
 
 			Set<String> sheets = spreadsheetOwners.get(userId);
 
-			sheets.forEach(id -> spreadsheets.remove(id));
+			sheets.forEach(spreadsheets::remove);
 			spreadsheetOwners.remove(userId);
 		}
 	}
