@@ -8,12 +8,9 @@ import tp1.api.User;
 import tp1.api.service.rest.RestUsers;
 import tp1.api.service.soap.SoapUsers;
 import tp1.api.service.soap.UsersException;
-import tp1.clients.sheet.SpreadsheetClient;
-import tp1.clients.sheet.SpreadsheetRetryClient;
 import tp1.discovery.Discovery;
 import tp1.server.WebServiceType;
 
-import java.net.URI;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -136,7 +133,7 @@ public class UsersResource implements RestUsers, SoapUsers {
 			}
 
 			try {
-				Discovery.getLocalSpreadsheetClient().deleteUserSpreadsheets(userId, password).value();
+				Discovery.getLocalSpreadsheetClients().deleteUserSpreadsheets(userId, password).value();
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

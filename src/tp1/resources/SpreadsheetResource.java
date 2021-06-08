@@ -20,7 +20,6 @@ import tp1.util.CellRange;
 import tp1.util.InvalidCellIdException;
 
 import java.util.*;
-import java.util.logging.Logger;
 
 import static tp1.server.WebServiceType.SOAP;
 

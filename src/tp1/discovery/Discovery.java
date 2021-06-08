@@ -1,11 +1,11 @@
 package tp1.discovery;
 
 import tp1.clients.sheet.SpreadsheetClient;
+import tp1.clients.sheet.SpreadsheetMultiClient;
 import tp1.clients.sheet.SpreadsheetRetryClient;
 import tp1.clients.user.UsersClient;
 import tp1.clients.user.UsersRetryClient;
 
-import java.io.IOException;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,29 +45,31 @@ public class Discovery {
 	private static String domainId;
 	private static String serviceName;
 	private static String serviceURI;
-	private static Map<String, Set<URI>> servers;
-	private static Map<String, Long> timeStamps;
+	private static ConcurrentHashMap<String, UsersClient> clientUserServer;
+	private static ConcurrentHashMap<String, ConcurrentHashMap<String, SpreadsheetClient>> clientSheetsServer;
+
 	private static MulticastSocket ms;
 
 	/**
 	 * @param  serviceName the name of the service to announce
 	 * @param  serviceURI an uri string - representing the contact endpoint of the service being announced
 	 */
-	public static void init(InetSocketAddress addr, String domainId, String serviceName, String serviceURI) {
+	public static void init(InetSocketAddress addr, String domainId, String serviceName, String serviceURI) throws Exception {
 		Discovery.addr = addr;
 		Discovery.domainId = domainId;
 		Discovery.serviceName = serviceName;
 		Discovery.serviceURI  = serviceURI;
-		Discovery.servers = new HashMap<String, Set<URI>>();
-		Discovery.timeStamps = new HashMap<String, Long>();
-		Discovery.ms = null;
+		Discovery.clientUserServer = new ConcurrentHashMap<>();
+		Discovery.clientSheetsServer = new ConcurrentHashMap<>();
+		Discovery.ms = new MulticastSocket(addr.getPort());
+		Discovery.ms.joinGroup(addr, NetworkInterface.getByInetAddress(InetAddress.getLocalHost()));
 	}
 
 	/**
 	 * @param  serviceName the name of the service to announce
 	 * @param  serviceURI an uri string - representing the contact endpoint of the service being announced
 	 */
-	public static void init(String domainId, String serviceName, String serviceURI) {
+	public static void init(String domainId, String serviceName, String serviceURI) throws Exception {
 		init(DISCOVERY_ADDR, domainId, serviceName, serviceURI);
 	}
 
@@ -84,12 +86,6 @@ public class Discovery {
 		DatagramPacket announcePkt = new DatagramPacket(announceBytes, announceBytes.length, addr);
 
 		try {
-			if(ms == null) {
-				ms = new MulticastSocket(addr.getPort());
-				ms.joinGroup(addr, NetworkInterface.getByInetAddress(InetAddress.getLocalHost()));
-			}
-
-			// start thread to send periodic announcements
 			new Thread(() -> {
 				for (;;) {
 					try {
@@ -111,12 +107,6 @@ public class Discovery {
 	 */
 	public static void startCollectingAnnouncements() {
 		try {
-			if(ms == null) {
-				ms = new MulticastSocket(addr.getPort());
-				ms.joinGroup(addr, NetworkInterface.getByInetAddress(InetAddress.getLocalHost()));
-			}
-
-			// start thread to collect announcements
 			new Thread(() -> {
 				DatagramPacket pkt = new DatagramPacket(new byte[1024], 1024);
 				for (;;) {
@@ -127,20 +117,25 @@ public class Discovery {
 						String msg = new String( pkt.getData(), 0, pkt.getLength());
 						String[] msgElems = msg.split(URI_DELIMITER);
 
-						if( msgElems.length == 2) {	//periodic announcement
+						if( msgElems.length == 2) {
 
-							String sn = msgElems[0], su = msgElems[1];
+							String domain = msgElems[0].split(DOMAIN_DELIMITER)[0];
+							String service = msgElems[0].split(DOMAIN_DELIMITER)[1];
+							String uri = msgElems[1];
 
-							if (!servers.containsKey(sn))
-								servers.put(sn, new HashSet<URI>());
+							if(service.equals(SpreadsheetClient.SERVICE)) {
+								if (!clientSheetsServer.containsKey(domain))
+									clientSheetsServer.put(domain, new ConcurrentHashMap<>());
 
-							servers.get(sn).add(URI.create(su));
-							timeStamps.put(sn, System.currentTimeMillis());
-
+								if(!clientSheetsServer.get(domain).containsKey(uri))
+									clientSheetsServer.get(domain).put(uri, new SpreadsheetRetryClient(uri));
+							}
+							else if(service.equals(UsersClient.SERVICE)) {
+								if (!clientUserServer.containsKey(domain))
+									clientUserServer.put(domain, new UsersRetryClient(uri));
+							}
 						}
-					} catch (IOException e) {
-						// do nothing
-					}
+					} catch (Exception ignored) {}
 				}
 			}).start();
 		} catch (Exception e) {
@@ -148,82 +143,21 @@ public class Discovery {
 		}
 	}
 
-	/**
-	 * Returns the known servers for a service.
-	 * 
-	 * @param  domain the domain of the service being discovered
-	 * @param  service the name of the service being discovered
-	 * @return an array of URI with the service instances discovered.
-	 * 
-	 */
-	public static Set<URI> knownUrisOf(String domain, String service) {
-		return servers.get(domain+DOMAIN_DELIMITER+service);
-	}
 
-
-	private static final Map<String, SpreadsheetClient> cachedSpreadSheetClients = new ConcurrentHashMap<>();
-	public static SpreadsheetClient getRemoteSpreadsheetClient(String domainId) {
-		if(cachedSpreadSheetClients.containsKey(domainId))
-			return cachedSpreadSheetClients.get(domainId);
-
-		String serverUrl = knownUrisOf(domainId, SpreadsheetClient.SERVICE).stream()
-				.findAny()
-				.map(URI::toString)
-				.orElse(null);
-
-		SpreadsheetClient client = null;
-		if(serverUrl != null) {
-			try {
-				client = new SpreadsheetRetryClient(serverUrl);
-				cachedSpreadSheetClients.put(domainId,client);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-
-		return client;
-	}
-
-
-	private static UsersClient cachedUserClient = null;
 	public static UsersClient getLocalUsersClient() {
-
-		if(cachedUserClient == null) {
-			String serverUrl = knownUrisOf(domainId, UsersClient.SERVICE).stream()
-					.findAny()
-					.map(URI::toString)
-					.orElse(null);
-
-			if(serverUrl != null) {
-				try {
-					cachedUserClient = new UsersRetryClient(serverUrl);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}
-
-		return cachedUserClient;
+		return clientUserServer.get(Discovery.domainId);
 	}
 
-	private static SpreadsheetClient cachedSpreadsheetClient = null;
-	public static SpreadsheetClient getLocalSpreadsheetClient() {
+	public static SpreadsheetMultiClient getLocalSpreadsheetClients() {
+		return new SpreadsheetMultiClient(Discovery.domainId, clientSheetsServer.get(Discovery.domainId));
+	}
 
-		if(cachedSpreadsheetClient == null) {
-			String serverUrl = knownUrisOf(domainId, SpreadsheetClient.SERVICE).stream()
-					.findAny()
-					.map(URI::toString)
-					.orElse(null);
+	public static SpreadsheetMultiClient getRemoteSpreadsheetClients(String domainId) {
+		return new SpreadsheetMultiClient(domainId, clientSheetsServer.get(domainId));
+	}
 
-			if(serverUrl != null) {
-				try {
-					cachedSpreadsheetClient = new SpreadsheetRetryClient(serverUrl);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}
-
-		return cachedSpreadsheetClient;
+	public static void removeSpreadsheetClient(String domain, String uri) {
+		if(clientSheetsServer.containsKey(domain))
+			clientSheetsServer.get(domain).remove(uri);
 	}
 }

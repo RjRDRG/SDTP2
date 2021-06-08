@@ -8,7 +8,6 @@ import java.util.logging.Logger;
 
 import tp1.api.engine.AbstractSpreadsheet;
 import tp1.discovery.Discovery;
-import tp1.resources.SpreadsheetResource;
 import tp1.util.CellRange;
 
 
@@ -198,7 +197,7 @@ public class Spreadsheet implements AbstractSpreadsheet {
 
 			String userId = owner+"@"+this.sheetURL.split("#id#")[0];
 
-			return Discovery.getRemoteSpreadsheetClient(domainId)
+			return Discovery.getRemoteSpreadsheetClients(domainId)
 					.getReferencedSpreadsheetValues(otherSheetId, userId, range).value();
 		} catch (Exception e) {
 			return null;

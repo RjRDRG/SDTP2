@@ -10,11 +10,7 @@ import tp1.api.engine.SpreadsheetEngine;
 import tp1.api.service.rest.RestSpreadsheets;
 import tp1.api.service.soap.SheetsException;
 import tp1.api.service.util.Result;
-import tp1.clients.sheet.SpreadsheetClient;
 import tp1.clients.sheet.SpreadsheetRepositoryClient;
-import tp1.clients.sheet.SpreadsheetRetryClient;
-import tp1.clients.user.UsersClient;
-import tp1.clients.user.UsersRetryClient;
 import tp1.discovery.Discovery;
 import tp1.impl.engine.SpreadsheetEngineImpl;
 import tp1.server.WebServiceType;
@@ -22,9 +18,7 @@ import tp1.util.Cell;
 import tp1.util.CellRange;
 import tp1.util.InvalidCellIdException;
 
-import java.net.URI;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 import static tp1.server.WebServiceType.REST;
