@@ -34,22 +34,6 @@ public class UsersRestClient implements UsersClient {
     }
 
     @Override
-    public Result<String> createUser(User user)  {
-        try {
-            Response r = target.request()
-                    .accept(MediaType.APPLICATION_JSON)
-                    .post(Entity.entity(user, MediaType.APPLICATION_JSON));
-
-            if (r.getStatus() == Response.Status.OK.getStatusCode() && r.hasEntity())
-                return Result.ok(r.readEntity(String.class));
-            else
-                return Result.error(Response.Status.fromStatusCode(r.getStatus()), new WebApplicationException(r.getStatus()));
-        } catch (Exception e) {
-            return Result.error(Result.ErrorCode.NOT_AVAILABLE, e);
-        }
-    }
-
-    @Override
     public Result<User> getUser(String userId, String password)  {
         try {
             Response r = target.path(userId).queryParam("password", password).request()
@@ -59,54 +43,6 @@ public class UsersRestClient implements UsersClient {
             if (r.getStatus() == Response.Status.OK.getStatusCode() && r.hasEntity())
                 return Result.ok(r.readEntity(User.class));
             else
-                return Result.error(Response.Status.fromStatusCode(r.getStatus()), new WebApplicationException(r.getStatus()));
-        } catch (Exception e) {
-            return Result.error(Result.ErrorCode.NOT_AVAILABLE, e);
-        }
-    }
-
-    @Override
-    public Result<User> updateUser(String userId, String password, User user)  {
-        try{
-            Response r = target.path(userId).queryParam("password", password).request()
-                    .accept(MediaType.APPLICATION_JSON)
-                    .put(Entity.entity(user, MediaType.APPLICATION_JSON));
-
-            if (r.getStatus() == Response.Status.OK.getStatusCode() && r.hasEntity())
-                return Result.ok(r.readEntity(User.class));
-            else
-                return Result.error(Response.Status.fromStatusCode(r.getStatus()), new WebApplicationException(r.getStatus()));
-        } catch (Exception e) {
-            return Result.error(Result.ErrorCode.NOT_AVAILABLE, e);
-        }
-    }
-
-    @Override
-    public Result<User> deleteUser(String userId, String password)  {
-        try {
-            Response r = target.path(userId).queryParam("password", password).request()
-                    .accept(MediaType.APPLICATION_JSON)
-                    .delete();
-
-            if (r.getStatus() == Response.Status.OK.getStatusCode() && r.hasEntity())
-                return Result.ok(r.readEntity(User.class));
-            else
-                return Result.error(Response.Status.fromStatusCode(r.getStatus()), new WebApplicationException(r.getStatus()));
-        } catch (Exception e) {
-            return Result.error(Result.ErrorCode.NOT_AVAILABLE, e);
-        }
-    }
-
-    @Override
-    public Result<List<User>> searchUsers(String pattern)  {
-        try {
-            Response r = target.path("/").queryParam("query", pattern).request()
-                    .accept(MediaType.APPLICATION_JSON)
-                    .get();
-
-            if (r.getStatus() == Response.Status.OK.getStatusCode() && r.hasEntity()) {
-                return Result.ok(r.readEntity(new GenericType<List<User>>() {}));
-            } else
                 return Result.error(Response.Status.fromStatusCode(r.getStatus()), new WebApplicationException(r.getStatus()));
         } catch (Exception e) {
             return Result.error(Result.ErrorCode.NOT_AVAILABLE, e);

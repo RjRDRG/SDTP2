@@ -1,6 +1,5 @@
 package tp1.clients.sheet;
 
-import tp1.api.Spreadsheet;
 import tp1.api.service.util.Result;
 
 import java.util.function.Supplier;
@@ -21,7 +20,17 @@ public class SpreadsheetRetryClient implements SpreadsheetClient{
             this.client = new SpreadsheetSoapClient(serverUrl);
     }
 
-    private <T> Result<T> retry(Supplier<Result<T>> supplier) {
+    @Override
+    public Result<String[][]> getReferencedSpreadsheetValues(String sheetId, String userId, String range) {
+        return retry( () -> client.getReferencedSpreadsheetValues(sheetId,userId,range));
+    }
+
+    @Override
+    public Result<Void> deleteUserSpreadsheets(String userId, String password) {
+        return retry( () -> client.deleteUserSpreadsheets(userId,password));
+    }
+
+    private static <T> Result<T> retry(Supplier<Result<T>> supplier) {
         Result<T> result;
 
         int retries=0;
@@ -37,50 +46,5 @@ public class SpreadsheetRetryClient implements SpreadsheetClient{
         } while (retries < MAX_RETRIES);
 
         return result;
-    }
-
-    @Override
-    public Result<String> createSpreadsheet(Spreadsheet sheet, String password) {
-        return retry( () -> client.createSpreadsheet(sheet,password));
-    }
-
-    @Override
-    public Result<Void> deleteSpreadsheet(String sheetId, String password) {
-        return retry( () -> client.deleteSpreadsheet(sheetId,password));
-    }
-
-    @Override
-    public Result<Spreadsheet> getSpreadsheet(String sheetId, String userId, String password) {
-        return retry( () -> client.getSpreadsheet(sheetId,userId,password));
-    }
-
-    @Override
-    public Result<String[][]> getSpreadsheetValues(String sheetId, String userId, String password) {
-        return retry( () -> client.getSpreadsheetValues(sheetId,userId,password));
-    }
-
-    @Override
-    public Result<String[][]> getReferencedSpreadsheetValues(String sheetId, String userId, String range) {
-        return retry( () -> client.getReferencedSpreadsheetValues(sheetId,userId,range));
-    }
-
-    @Override
-    public Result<Void> updateCell(String sheetId, String cell, String rawValue, String userId, String password) {
-        return retry(() -> client.updateCell(sheetId, cell, rawValue, userId, password));
-    }
-
-    @Override
-    public Result<Void> shareSpreadsheet(String sheetId, String userId, String password) {
-        return retry( () -> client.shareSpreadsheet(sheetId,userId,password));
-    }
-
-    @Override
-    public Result<Void> unshareSpreadsheet(String sheetId, String userId, String password) {
-        return retry( () -> client.unshareSpreadsheet(sheetId,userId,password));
-    }
-
-    @Override
-    public Result<Void> deleteUserSpreadsheets(String userId, String password) {
-        return retry( () -> client.deleteUserSpreadsheets(userId,password));
     }
 }

@@ -1,4 +1,4 @@
-package tp1.resources;
+package tp1.resources.proxy;
 
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.WebApplicationException;
@@ -12,7 +12,8 @@ import tp1.api.service.soap.SheetsException;
 import tp1.api.service.util.Result;
 import tp1.clients.sheet.SpreadsheetRepositoryClient;
 import tp1.discovery.Discovery;
-import tp1.impl.engine.SpreadsheetEngineImpl;
+import tp1.impl.SpreadsheetEngineImpl;
+import tp1.resources.rest.SpreadsheetRestResource;
 import tp1.server.WebServiceType;
 import tp1.util.Cell;
 import tp1.util.CellRange;
@@ -35,7 +36,7 @@ public class SpreadsheetProxyResource implements RestSpreadsheets {
 
     private final SpreadsheetRepositoryClient repositoryClient;
 
-    private static Logger Log = Logger.getLogger(SpreadsheetResource.class.getName());
+    private static Logger Log = Logger.getLogger(SpreadsheetRestResource.class.getName());
 
     public SpreadsheetProxyResource(String domainId, SpreadsheetRepositoryClient repositoryClient) {
         this.domainId = domainId;

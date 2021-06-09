@@ -2,16 +2,9 @@ package tp1.api.service.rest;
 
 import java.util.*;
 
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.PUT;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import tp1.api.User;
 
 @Path(RestUsers.PATH)
@@ -77,7 +70,7 @@ public interface RestUsers {
 	@DELETE
 	@Path("/{userId}")
 	@Produces(MediaType.APPLICATION_JSON)
-	User deleteUser(@PathParam("userId") String userId, @QueryParam("password") String password) throws Exception;
+	Response deleteUser(@HeaderParam(RestSpreadsheets.HEADER_VERSION) Long version, @PathParam("userId") String userId, @QueryParam("password") String password) throws Exception;
 	
 	/**
 	 * Returns the list of users for which the pattern is a substring of the name (of the user), case-insensitive.

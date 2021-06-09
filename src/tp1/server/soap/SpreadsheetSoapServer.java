@@ -1,13 +1,11 @@
 package tp1.server.soap;
 
-import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.HttpsConfigurator;
 import com.sun.net.httpserver.HttpsServer;
 import jakarta.xml.ws.Endpoint;
 import tp1.discovery.Discovery;
-import tp1.kafka.sync.SyncPoint;
 import tp1.server.WebServiceType;
-import tp1.resources.SpreadsheetResource;
+import tp1.resources.rest.SpreadsheetRestResource;
 import tp1.server.rest.UsersRestServer;
 import tp1.util.InsecureHostnameVerifier;
 
@@ -49,7 +47,7 @@ public class SpreadsheetSoapServer {
 
             server.setExecutor(Executors.newCachedThreadPool());
 
-            Endpoint soapUsersEndpoint = Endpoint.create(new SpreadsheetResource(domain, WebServiceType.SOAP));
+            Endpoint soapUsersEndpoint = Endpoint.create(new SpreadsheetRestResource(domain, WebServiceType.SOAP));
 
             soapUsersEndpoint.publish(server.createContext(SOAP_USERS_PATH));
 

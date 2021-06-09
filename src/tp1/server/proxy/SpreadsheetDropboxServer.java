@@ -1,14 +1,10 @@
 package tp1.server.proxy;
 
-import com.google.gson.Gson;
 import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
-import tp1.api.Spreadsheet;
 import tp1.clients.sheet.SpreadsheetDropboxClient;
 import tp1.discovery.Discovery;
-import tp1.resources.SpreadsheetProxyResource;
-import tp1.resources.SpreadsheetResource;
-import tp1.server.WebServiceType;
+import tp1.resources.proxy.SpreadsheetProxyResource;
 import tp1.server.rest.UsersRestServer;
 import tp1.util.InsecureHostnameVerifier;
 

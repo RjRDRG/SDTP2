@@ -4,7 +4,7 @@ import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import tp1.discovery.Discovery;
 import tp1.server.WebServiceType;
-import tp1.resources.SpreadsheetResource;
+import tp1.resources.rest.SpreadsheetRestResource;
 import tp1.util.InsecureHostnameVerifier;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -35,7 +35,7 @@ public class SpreadsheetRestServer {
             HttpsURLConnection.setDefaultHostnameVerifier(new InsecureHostnameVerifier());
 
             ResourceConfig config = new ResourceConfig();
-            config.register(new SpreadsheetResource(domain, WebServiceType.REST));
+            config.register(new SpreadsheetRestResource(domain, WebServiceType.REST));
 
             String serverURI = String.format("https://%s:%s/rest", ip, PORT);
             JdkHttpServerFactory.createHttpServer(URI.create(serverURI), config, SSLContext.getDefault());

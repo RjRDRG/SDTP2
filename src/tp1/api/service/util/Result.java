@@ -3,6 +3,8 @@ package tp1.api.service.util;
 
 import jakarta.ws.rs.core.Response;
 
+import java.util.Map;
+
 /**
  *
  * Represents the result of an operation, either wrapping a result of the given type,
@@ -24,7 +26,21 @@ public interface Result<T> {
 			case FORBIDDEN -> ErrorCode.FORBIDDEN;
 			case INTERNAL_SERVER_ERROR -> ErrorCode.INTERNAL_ERROR;
 			case NOT_IMPLEMENTED -> ErrorCode.NOT_IMPLEMENTED;
+			case SERVICE_UNAVAILABLE -> ErrorCode.NOT_AVAILABLE;
 			default -> ErrorCode.BAD_REQUEST;
+		};
+	}
+
+	static Response.Status mapError(ErrorCode status) {
+		return switch (status) {
+			case CONFLICT -> Response.Status.CONFLICT;
+			case NOT_FOUND -> Response.Status.NOT_FOUND;
+			case BAD_REQUEST -> Response.Status.BAD_REQUEST;
+			case FORBIDDEN -> Response.Status.FORBIDDEN;
+			case INTERNAL_ERROR -> Response.Status.INTERNAL_SERVER_ERROR;
+			case NOT_IMPLEMENTED -> Response.Status.NOT_IMPLEMENTED;
+			case NOT_AVAILABLE -> Response.Status.SERVICE_UNAVAILABLE;
+			default -> Response.Status.BAD_REQUEST;
 		};
 	}
 
@@ -48,7 +64,7 @@ public interface Result<T> {
 	 * obtains the payload value of this result
 	 * @return the value of this result.
 	 */
-	T value() throws Exception;
+	T value();
 
 	/**
 	 *
@@ -57,6 +73,10 @@ public interface Result<T> {
 	 *
 	 */
 	Result.ErrorCode error();
+
+	Map<String, String> getOthers();
+
+	void setOthers(Map<String, String> others);
 
 	String toString();
 
@@ -84,8 +104,20 @@ public interface Result<T> {
 		return new ErrorResult<>(code, exception);
 	}
 
+	/**
+	 * Convenience method used to return an error
+	 * @return
+	 */
+	static <T> ErrorResult<T> error(ErrorCode code) {
+		return new ErrorResult<>(code, new Exception(code.name()));
+	}
+
 	static <T> ErrorResult<T> error(Response.Status code, Exception exception) {
 		return new ErrorResult<>(Result.mapError(code), exception);
+	}
+
+	static <T> ErrorResult<T> error(Response.Status code) {
+		return new ErrorResult<>(Result.mapError(code), new Exception(code.name()));
 	}
 
 	static <T> ErrorResult<T> error(String msg, Exception exception) {
@@ -97,6 +129,7 @@ public interface Result<T> {
 class OkResult<T> implements Result<T> {
 
 	final T result;
+	Map<String, String> others;
 
 	OkResult(T result) {
 		this.result = result;
@@ -112,12 +145,27 @@ class OkResult<T> implements Result<T> {
 		return result;
 	}
 
+	@Override
 	public ErrorCode error() {
 		return ErrorCode.OK;
 	}
 
+	@Override
+	public Map<String, String> getOthers() {
+		return others;
+	}
+
+	@Override
+	public void setOthers(Map<String, String> others) {
+		this.others = others;
+	}
+
+	@Override
 	public String toString() {
-		return "(OK, " + value().toString() + ")";
+		return "OkResult{" +
+				"result=" + result +
+				", others=" + others +
+				'}';
 	}
 }
 
@@ -125,6 +173,7 @@ class ErrorResult<T> implements Result<T> {
 
 	final ErrorCode code;
 	final Exception exception;
+	Map<String, String> others;
 
 	ErrorResult(ErrorCode code, Exception exception) {
 		this.code = code;
@@ -137,8 +186,8 @@ class ErrorResult<T> implements Result<T> {
 	}
 
 	@Override
-	public T value() throws Exception {
-		throw exception;
+	public T value() {
+		return null;
 	}
 
 	@Override
@@ -146,7 +195,22 @@ class ErrorResult<T> implements Result<T> {
 		return code;
 	}
 
+	@Override
+	public Map<String, String> getOthers() {
+		return others;
+	}
+
+	@Override
+	public void setOthers(Map<String, String> others) {
+		this.others = others;
+	}
+
+	@Override
 	public String toString() {
-		return "(" + error() + " " + exception.getMessage() + ")";
+		return "ErrorResult{" +
+				"code=" + code +
+				", exception=" + exception.getMessage() +
+				", others=" + others +
+				'}';
 	}
 }

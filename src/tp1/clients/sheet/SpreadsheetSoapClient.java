@@ -31,90 +31,9 @@ public class SpreadsheetSoapClient implements SpreadsheetClient {
     }
 
     @Override
-    public Result<String> createSpreadsheet(Spreadsheet sheet, String password) {
-        try {
-            return Result.ok(target.createSpreadsheet(sheet, password));
-        } catch (SheetsException e) {
-            return Result.error(e.getMessage(),e);
-        } catch (Exception e) {
-            return Result.error(Result.ErrorCode.NOT_AVAILABLE,e);
-        }
-    }
-
-    @Override
-    public Result<Void> deleteSpreadsheet(String sheetId, String password) {
-        try {
-            target.deleteSpreadsheet(sheetId, password);
-            return Result.ok();
-        } catch (SheetsException e) {
-            return Result.error(e.getMessage(),e);
-        } catch (Exception e) {
-            return Result.error(Result.ErrorCode.NOT_AVAILABLE,e);
-        }
-    }
-
-    @Override
-    public Result<Spreadsheet> getSpreadsheet(String sheetId, String userId, String password)  {
-        try {
-            return Result.ok(target.getSpreadsheet(sheetId, userId, password));
-        } catch (SheetsException e) {
-            return Result.error(e.getMessage(),e);
-        } catch (Exception e) {
-            return Result.error(Result.ErrorCode.NOT_AVAILABLE,e);
-        }
-    }
-
-    @Override
-    public Result<String[][]> getSpreadsheetValues(String sheetId, String userId, String password) {
-        try {
-            return Result.ok(target.getSpreadsheetValues(sheetId, userId, password));
-        } catch (SheetsException e) {
-            return Result.error(e.getMessage(),e);
-        } catch (Exception e) {
-            return Result.error(Result.ErrorCode.NOT_AVAILABLE,e);
-        }
-    }
-
-    @Override
     public Result<String[][]> getReferencedSpreadsheetValues(String sheetId, String userId, String range) {
         try {
             return Result.ok(target.getReferencedSpreadsheetValues(sheetId, userId, range));
-        } catch (SheetsException e) {
-            return Result.error(e.getMessage(),e);
-        } catch (Exception e) {
-            return Result.error(Result.ErrorCode.NOT_AVAILABLE,e);
-        }
-    }
-
-    @Override
-    public Result<Void> updateCell(String sheetId, String cell, String rawValue, String userId, String password) {
-        try {
-            target.updateCell(sheetId, cell, rawValue, userId, password);
-            return Result.ok();
-        } catch (SheetsException e) {
-            return Result.error(e.getMessage(),e);
-        } catch (Exception e) {
-            return Result.error(Result.ErrorCode.NOT_AVAILABLE,e);
-        }
-    }
-
-    @Override
-    public Result<Void> shareSpreadsheet(String sheetId, String userId, String password) {
-        try {
-            target.shareSpreadsheet(sheetId, userId, password);
-            return Result.ok();
-        } catch (SheetsException e) {
-            return Result.error(e.getMessage(),e);
-        } catch (Exception e) {
-            return Result.error(Result.ErrorCode.NOT_AVAILABLE,e);
-        }
-    }
-
-    @Override
-    public Result<Void> unshareSpreadsheet(String sheetId, String userId, String password) {
-        try {
-            target.unshareSpreadsheet(sheetId, userId, password);
-            return Result.ok();
         } catch (SheetsException e) {
             return Result.error(e.getMessage(),e);
         } catch (Exception e) {

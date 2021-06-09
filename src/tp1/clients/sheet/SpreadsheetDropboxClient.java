@@ -16,17 +16,6 @@ import java.util.Optional;
 public class SpreadsheetDropboxClient implements SpreadsheetRepositoryClient{
 
     @Override
-    public Result<Void> createDirectory(String directoryPath) {
-        try {
-            CreateDirectory.execute(new CreateDirectory.CreateDirectoryArgs(directoryPath));
-            return Result.ok();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return Result.error(e.getMessage(),e);
-        }
-    }
-
-    @Override
     public Result<String> uploadSpreadsheet(String path, Spreadsheet spreadsheet) {
         try {
             UploadSpreadsheet.UploadSpreadsheetReply reply = UploadSpreadsheet.execute(new UploadSpreadsheet.UploadSpreadsheetArgs(path),spreadsheet);
@@ -70,44 +59,6 @@ public class SpreadsheetDropboxClient implements SpreadsheetRepositoryClient{
         protected static final OAuth20Service service = new ServiceBuilder(apiKey).apiSecret(apiSecret).build(DropboxApi20.INSTANCE);
         protected static final OAuth2AccessToken accessToken  = new OAuth2AccessToken(accessTokenStr);
         protected static final Gson json = new Gson();
-    }
-
-
-    static class CreateDirectory extends DropboxRequest{
-
-        static class CreateDirectoryArgs {
-            final String path;
-            final boolean autorename;
-
-            CreateDirectoryArgs(String path) {
-                this.path = path;
-                this.autorename = false;
-            }
-        }
-
-        static final String CREATE_FOLDER_V2_URL =
-                "https://api.dropboxapi.com/2/files/create_folder_v2";
-
-        public static void execute(CreateDirectoryArgs args) throws Exception {
-            OAuthRequest request = new OAuthRequest(Verb.POST,CREATE_FOLDER_V2_URL);
-            request.addHeader("Content-Type", JSON_CONTENT_TYPE);
-            request.setPayload(json.toJson(args));
-
-            service.signRequest(accessToken, request);
-
-            Response r = service.execute(request);
-
-            if(r == null) {
-                throw new Exception("Invalid request");
-            }
-            else if(r.getCode() != 200) {
-                throw new Exception(
-                        "status: " + r.getCode() +
-                        "\nmessage: " + r.getMessage() +
-                        "\nbody: " + Optional.ofNullable(r.getBody()).orElse("")
-                );
-            }
-        }
     }
 
 

@@ -9,11 +9,11 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import tp1.api.Spreadsheet;
 import tp1.api.User;
 import tp1.api.engine.SpreadsheetEngine;
-import tp1.api.service.rest.RestSpreadsheetsReplicated;
+import tp1.api.service.rest.RestSpreadsheets;
 import tp1.api.service.soap.SheetsException;
 import tp1.api.service.util.Result;
 import tp1.discovery.Discovery;
-import tp1.impl.engine.SpreadsheetEngineImpl;
+import tp1.impl.SpreadsheetEngineImpl;
 import tp1.kafka.KafkaPublisher;
 import tp1.kafka.KafkaSubscriber;
 import tp1.kafka.RecordProcessor;
@@ -29,7 +29,7 @@ import java.util.*;
 import static tp1.kafka.KafkaUtils.KAFKA_ADDRESS;
 
 @Singleton
-public class SpreadsheetReplicatedResource implements RestSpreadsheetsReplicated {
+public class SpreadsheetResource implements RestSpreadsheets {
 
 	private final String domainId;
 

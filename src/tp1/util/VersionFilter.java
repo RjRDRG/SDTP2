@@ -4,7 +4,7 @@ import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
 import jakarta.ws.rs.ext.Provider;
-import tp1.api.service.rest.RestSpreadsheetsReplicated;
+import tp1.api.service.rest.RestSpreadsheets;
 import tp1.kafka.sync.SyncPoint;
 
 import java.io.IOException;
@@ -17,6 +17,6 @@ public class VersionFilter implements ContainerResponseFilter {
 
     @Override
     public void filter(ContainerRequestContext request, ContainerResponseContext response) throws IOException {
-        response.getHeaders().add(RestSpreadsheetsReplicated.HEADER_VERSION, SyncPoint.getVersion());
+        response.getHeaders().add(RestSpreadsheets.HEADER_VERSION, SyncPoint.getVersion());
     }
 }

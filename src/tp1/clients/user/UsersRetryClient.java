@@ -2,8 +2,6 @@ package tp1.clients.user;
 
 import tp1.api.User;
 import tp1.api.service.util.Result;
-
-import java.util.List;
 import java.util.function.Supplier;
 
 import static tp1.api.service.util.Result.ErrorCode.NOT_AVAILABLE;
@@ -22,7 +20,12 @@ public class UsersRetryClient implements UsersClient{
             client = new UsersSoapClient(serverUrl);
     }
 
-    private <T> Result<T> retry(Supplier<Result<T>> supplier) {
+    @Override
+    public Result<User> getUser(String userId, String password) {
+        return retry( () -> client.getUser(userId,password));
+    }
+
+    private static <T> Result<T> retry(Supplier<Result<T>> supplier) {
         Result<T> result;
 
         int retries=0;
@@ -39,31 +42,4 @@ public class UsersRetryClient implements UsersClient{
 
         return result;
     }
-
-    @Override
-    public Result<String> createUser(User user) {
-        return retry(() -> client.createUser(user));
-    }
-
-    @Override
-    public Result<User> getUser(String userId, String password) {
-        return retry( () -> client.getUser(userId,password));
-    }
-
-    @Override
-    public Result<User> updateUser(String userId, String password, User user) {
-        return retry(() -> client.updateUser(userId,password,user));
-    }
-
-    @Override
-    public Result<User> deleteUser(String userId, String password) {
-        return retry(() -> client.deleteUser(userId,password));
-    }
-
-    @Override
-    public Result<List<User>> searchUsers(String pattern) {
-        return retry( () -> client.searchUsers(pattern));
-    }
-
-
 }
