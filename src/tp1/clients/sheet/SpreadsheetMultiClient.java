@@ -10,12 +10,12 @@ import static tp1.api.service.util.Result.ErrorCode.NOT_AVAILABLE;
 
 public class SpreadsheetMultiClient implements SpreadsheetClient{
 
-    private final String domainId;
     private final Map<String, SpreadsheetClient> clients;
+    private final String domainId;
 
-    public SpreadsheetMultiClient(String domainId, Map<String, SpreadsheetClient> clients) {
-        this.domainId = domainId;
+    public SpreadsheetMultiClient(Map<String, SpreadsheetClient> clients, String domainId) {
         this.clients = clients;
+        this.domainId = domainId;
     }
 
     private <T> Result<T> multi(Function<SpreadsheetClient, Result<T>> function) {
@@ -35,8 +35,8 @@ public class SpreadsheetMultiClient implements SpreadsheetClient{
     }
 
     @Override
-    public Result<String[][]> getReferencedSpreadsheetValues(String sheetId, String userId, String range) {
-        return multi(client -> client.getReferencedSpreadsheetValues(sheetId,userId,range));
+    public Result<String[][]> getReferencedSpreadsheetValues(Map<String,Long> versions, String sheetId, String userId, String range) {
+        return multi(client -> client.getReferencedSpreadsheetValues(versions,sheetId,userId,range));
     }
 
     @Override

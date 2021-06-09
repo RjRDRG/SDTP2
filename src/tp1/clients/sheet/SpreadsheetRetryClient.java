@@ -2,6 +2,7 @@ package tp1.clients.sheet;
 
 import tp1.api.service.util.Result;
 
+import java.util.Map;
 import java.util.function.Supplier;
 
 import static tp1.api.service.util.Result.ErrorCode.NOT_AVAILABLE;
@@ -13,16 +14,16 @@ public class SpreadsheetRetryClient implements SpreadsheetClient{
 
     private final SpreadsheetClient client;
 
-    public SpreadsheetRetryClient(String serverUrl) throws Exception{
+    public SpreadsheetRetryClient(String serverUrl, String domainId) throws Exception{
         if (serverUrl.contains("/rest"))
-            this.client = new SpreadsheetRestClient(serverUrl);
+            this.client = new SpreadsheetRestClient(serverUrl, domainId);
         else
-            this.client = new SpreadsheetSoapClient(serverUrl);
+            this.client = new SpreadsheetSoapClient(serverUrl, domainId);
     }
 
     @Override
-    public Result<String[][]> getReferencedSpreadsheetValues(String sheetId, String userId, String range) {
-        return retry( () -> client.getReferencedSpreadsheetValues(sheetId,userId,range));
+    public Result<String[][]> getReferencedSpreadsheetValues(Map<String,Long> versions, String sheetId, String userId, String range) {
+        return retry( () -> client.getReferencedSpreadsheetValues(versions, sheetId,userId,range));
     }
 
     @Override

@@ -4,7 +4,7 @@ import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import tp1.clients.sheet.SpreadsheetDropboxClient;
 import tp1.discovery.Discovery;
-import tp1.resources.proxy.SpreadsheetProxyResource;
+import tp1.resources.rest.SpreadsheetProxyResource;
 import tp1.server.rest.UsersRestServer;
 import tp1.util.InsecureHostnameVerifier;
 

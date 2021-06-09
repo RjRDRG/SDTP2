@@ -4,7 +4,7 @@ import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import tp1.discovery.Discovery;
 import tp1.kafka.sync.SyncPoint;
-import tp1.resources.SpreadsheetReplicatedResource;
+import tp1.resources.rest.SpreadsheetReplicatedResource;
 import tp1.util.InsecureHostnameVerifier;
 import tp1.util.VersionFilter;
 
@@ -40,7 +40,7 @@ public class SpreadsheetReplicaServer {
             String serverURI = String.format("https://%s:%s/rest", ip, PORT);
 
             ResourceConfig config = new ResourceConfig();
-            config.register(new SpreadsheetReplicatedResource(domain, sp, serverURI));
+            config.register(new SpreadsheetReplicatedResource(domain, sp));
             config.register(new VersionFilter());
 
             JdkHttpServerFactory.createHttpServer(URI.create(serverURI), config, SSLContext.getDefault());

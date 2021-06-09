@@ -4,7 +4,6 @@ import com.sun.net.httpserver.HttpsConfigurator;
 import com.sun.net.httpserver.HttpsServer;
 import jakarta.xml.ws.Endpoint;
 import tp1.discovery.Discovery;
-import tp1.server.WebServiceType;
 import tp1.resources.rest.UsersRestResource;
 import tp1.server.rest.UsersRestServer;
 import tp1.util.InsecureHostnameVerifier;
@@ -47,7 +46,7 @@ public class UsersSoapServer {
 
             server.setExecutor(Executors.newCachedThreadPool());
 
-            Endpoint soapUsersEndpoint = Endpoint.create(new UsersRestResource(domain, WebServiceType.SOAP));
+            Endpoint soapUsersEndpoint = Endpoint.create(new UsersRestResource(domain));
 
             soapUsersEndpoint.publish(server.createContext (SOAP_USERS_PATH));
 

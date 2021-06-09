@@ -1,10 +1,7 @@
 package tp1.clients.sheet;
 
 import jakarta.ws.rs.WebApplicationException;
-import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.client.ClientBuilder;
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.client.*;
 import jakarta.ws.rs.core.GenericType;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -15,21 +12,26 @@ import tp1.api.service.rest.RestSpreadsheets;
 import tp1.api.service.util.Result;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class SpreadsheetRestClient implements SpreadsheetClient {
+import static tp1.api.service.rest.RestSpreadsheets.HEADER_VERSION;
 
-    private final WebTarget target;
+public class SpreadsheetRestClient implements SpreadsheetClient {
 
     public final static int CONNECTION_TIMEOUT = 10000;
     public final static int REPLY_TIMEOUT = 1000;
 
-    public SpreadsheetRestClient(String serverUrl) {
+    private final WebTarget target;
+    private final String domainId;
+
+    public SpreadsheetRestClient(String serverUrl, String domainId) {
         ClientConfig config = new ClientConfig();
         Client client = ClientBuilder.newClient(config);
         client.property(ClientProperties.CONNECT_TIMEOUT, CONNECTION_TIMEOUT);
         client.property(ClientProperties.READ_TIMEOUT,    REPLY_TIMEOUT);
         target = client.target(serverUrl).path( RestSpreadsheets.PATH );
+        this.domainId = domainId;
     }
 
     private <T> Result<T> addHeaders(Result<T> result, Response response) {
@@ -45,11 +47,16 @@ public class SpreadsheetRestClient implements SpreadsheetClient {
     }
 
     @Override
-    public Result<String[][]> getReferencedSpreadsheetValues(String sheetId, String userId, String range) {
+    public Result<String[][]> getReferencedSpreadsheetValues(Map<String,Long> versions, String sheetId, String userId, String range) {
         try {
-            Response r = target.path("reference").path(sheetId).queryParam("userId", userId).queryParam("range", range).request()
-                    .accept(MediaType.APPLICATION_JSON)
-                    .get();
+            Invocation.Builder builder = target.path("reference").path(sheetId).queryParam("userId", userId).queryParam("range", range).request()
+                    .accept(MediaType.APPLICATION_JSON);
+
+            for (Map.Entry<String,Long> entry : versions.entrySet()) {
+                builder.header(entry.getKey(), entry.getValue().toString());
+            }
+
+            Response r = builder.get();
 
             if (r.getStatus() == Response.Status.OK.getStatusCode() && r.hasEntity())
                 return addHeaders(

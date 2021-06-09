@@ -80,6 +80,8 @@ public interface Result<T> {
 
 	String toString();
 
+	void throwException() throws Exception;
+
 	/**
 	 * Convenience method for returning non error results of the given type
 	 * @return the value of the result
@@ -167,6 +169,9 @@ class OkResult<T> implements Result<T> {
 				", others=" + others +
 				'}';
 	}
+
+	@Override
+	public void throwException() throws Exception {}
 }
 
 class ErrorResult<T> implements Result<T> {
@@ -212,5 +217,10 @@ class ErrorResult<T> implements Result<T> {
 				", exception=" + exception.getMessage() +
 				", others=" + others +
 				'}';
+	}
+
+	@Override
+	public void throwException() throws Exception {
+		throw exception;
 	}
 }

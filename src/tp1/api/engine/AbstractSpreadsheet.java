@@ -1,5 +1,7 @@
 package tp1.api.engine;
 
+import java.util.Map;
+
 /**
  * 
  * Interface used to feed a spreadsheet to the SpreadsheetEngine and compute its values.
@@ -37,5 +39,5 @@ public interface AbstractSpreadsheet {
 	 * @param range - the range of cells covered by the formula
 	 * @return the computed values.
 	 */
-	String[][] rangeValues(String sheetURL, String range);
+	String[][] rangeValues(Map<String,Long> versions, String sheetURL, String range);
 }

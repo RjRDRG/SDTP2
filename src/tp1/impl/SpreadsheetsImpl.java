@@ -1,6 +1,7 @@
 package tp1.impl;
 
 
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.tuple.Pair;
 import tp1.api.Spreadsheet;
@@ -121,7 +122,7 @@ public class SpreadsheetsImpl {
         return Result.ok(sheet);
     }
 
-    public Result<String[][]> getReferencedSpreadsheetValues(String sheetId, String userId, String range) {
+    public Result<String[][]> getReferencedSpreadsheetValues(Map<String,Long> versions, String sheetId, String userId, String range) {
 
         if( sheetId == null || userId == null || range == null) {
             return Result.error(Response.Status.BAD_REQUEST);
@@ -139,7 +140,7 @@ public class SpreadsheetsImpl {
 
         String[][] result = null;
         try {
-            result = engine.computeSpreadsheetValues(spreadsheet);
+            result = engine.computeSpreadsheetValues(versions, spreadsheet);
         } catch (Exception exception) {
             return Result.error(Response.Status.BAD_REQUEST);
         }
@@ -149,7 +150,7 @@ public class SpreadsheetsImpl {
         return Result.ok(result);
     }
 
-    public Result<String[][]> getSpreadsheetValues(String sheetId, String userId, String password) {
+    public Result<String[][]> getSpreadsheetValues(Map<String,Long> versions, String sheetId, String userId, String password) {
 
         Result<Spreadsheet> spreadsheet = getSpreadsheet(sheetId, userId, password);
 
@@ -158,7 +159,7 @@ public class SpreadsheetsImpl {
 
         String[][] result = null;
         try {
-            result = engine.computeSpreadsheetValues(spreadsheet.value());
+            result = engine.computeSpreadsheetValues(versions, spreadsheet.value());
         } catch (Exception exception) {
             return Result.error(Response.Status.BAD_REQUEST);
         }

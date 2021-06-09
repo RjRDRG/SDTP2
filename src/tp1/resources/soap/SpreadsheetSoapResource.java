@@ -1,15 +1,13 @@
 package tp1.resources.soap;
 
-import jakarta.inject.Singleton;
 import jakarta.jws.WebService;
-import jakarta.ws.rs.WebApplicationException;
 import tp1.api.Spreadsheet;
-import tp1.api.service.rest.RestSpreadsheets;
 import tp1.api.service.soap.SheetsException;
 import tp1.api.service.soap.SoapSpreadsheets;
-import tp1.api.service.soap.SoapUsers;
 import tp1.api.service.util.Result;
 import tp1.impl.SpreadsheetsImpl;
+
+import java.util.HashMap;
 
 import static tp1.api.service.util.Result.mapError;
 
@@ -55,7 +53,7 @@ public class SpreadsheetSoapResource implements SoapSpreadsheets {
 
 	@Override
 	public String[][] getReferencedSpreadsheetValues(String sheetId, String userId, String range) throws SheetsException {
-		Result<String[][]> result = impl.getReferencedSpreadsheetValues(sheetId, userId, range);
+		Result<String[][]> result = impl.getReferencedSpreadsheetValues(new HashMap<>(), sheetId, userId, range);
 		if(!result.isOK())
 			throw new SheetsException(result.error().name());
 		else
@@ -64,7 +62,7 @@ public class SpreadsheetSoapResource implements SoapSpreadsheets {
 
 	@Override
 	public String[][] getSpreadsheetValues(String sheetId, String userId, String password) throws SheetsException {
-		Result<String[][]> result = impl.getSpreadsheetValues(sheetId, userId, password);
+		Result<String[][]> result = impl.getSpreadsheetValues(new HashMap<>(), sheetId, userId, password);
 		if(!result.isOK())
 			throw new SheetsException(result.error().name());
 		else

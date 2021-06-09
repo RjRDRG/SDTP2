@@ -11,6 +11,7 @@ import tp1.api.service.util.Result;
 import javax.xml.namespace.QName;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Map;
 
 public class SpreadsheetSoapClient implements SpreadsheetClient {
 
@@ -21,17 +22,21 @@ public class SpreadsheetSoapClient implements SpreadsheetClient {
 
     public final SoapSpreadsheets target;
 
-    public SpreadsheetSoapClient (String serverUrl) throws MalformedURLException {
+    public final String domainId;
+
+    public SpreadsheetSoapClient (String serverUrl, String domainId) throws MalformedURLException {
         QName QNAME = new QName(SoapSpreadsheets.NAMESPACE, SoapSpreadsheets.NAME);
         Service service = Service.create( new URL(serverUrl + SPREADSHEETS_WSDL), QNAME );
         target = service.getPort( SoapSpreadsheets.class );
 
         ((BindingProvider) target).getRequestContext().put(BindingProviderProperties.CONNECT_TIMEOUT, CONNECTION_TIMEOUT);
         ((BindingProvider) target).getRequestContext().put(BindingProviderProperties.REQUEST_TIMEOUT, REPLY_TIMEOUT);
+
+        this.domainId =  domainId;
     }
 
     @Override
-    public Result<String[][]> getReferencedSpreadsheetValues(String sheetId, String userId, String range) {
+    public Result<String[][]> getReferencedSpreadsheetValues(Map<String,Long> versions, String sheetId, String userId, String range) {
         try {
             return Result.ok(target.getReferencedSpreadsheetValues(sheetId, userId, range));
         } catch (SheetsException e) {

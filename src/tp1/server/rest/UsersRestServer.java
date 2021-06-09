@@ -3,7 +3,6 @@ package tp1.server.rest;
 import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import tp1.discovery.Discovery;
-import tp1.server.WebServiceType;
 import tp1.resources.rest.UsersRestResource;
 import tp1.util.InsecureHostnameVerifier;
 
@@ -35,7 +34,7 @@ public class UsersRestServer {
 			HttpsURLConnection.setDefaultHostnameVerifier(new InsecureHostnameVerifier());
 
 			ResourceConfig config = new ResourceConfig();
-			config.register(new UsersRestResource(domain, WebServiceType.REST));
+			config.register(new UsersRestResource(domain));
 
 			String serverURI = String.format("https://%s:%s/rest", ip, PORT);
 			JdkHttpServerFactory.createHttpServer(URI.create(serverURI), config, SSLContext.getDefault());

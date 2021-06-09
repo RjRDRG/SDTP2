@@ -7,7 +7,6 @@ import tp1.clients.user.UsersClient;
 import tp1.clients.user.UsersRetryClient;
 
 import java.net.*;
-import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
@@ -128,7 +127,7 @@ public class Discovery {
 									clientSheetsServer.put(domain, new ConcurrentHashMap<>());
 
 								if(!clientSheetsServer.get(domain).containsKey(uri))
-									clientSheetsServer.get(domain).put(uri, new SpreadsheetRetryClient(uri));
+									clientSheetsServer.get(domain).put(uri, new SpreadsheetRetryClient(uri, domain));
 							}
 							else if(service.equals(UsersClient.SERVICE)) {
 								if (!clientUserServer.containsKey(domain))
@@ -149,11 +148,11 @@ public class Discovery {
 	}
 
 	public static SpreadsheetMultiClient getLocalSpreadsheetClients() {
-		return new SpreadsheetMultiClient(Discovery.domainId, clientSheetsServer.get(Discovery.domainId));
+		return new SpreadsheetMultiClient(clientSheetsServer.get(Discovery.domainId), Discovery.domainId);
 	}
 
 	public static SpreadsheetMultiClient getRemoteSpreadsheetClients(String domainId) {
-		return new SpreadsheetMultiClient(domainId, clientSheetsServer.get(domainId));
+		return new SpreadsheetMultiClient(clientSheetsServer.get(domainId), domainId);
 	}
 
 	public static void removeSpreadsheetClient(String domain, String uri) {
