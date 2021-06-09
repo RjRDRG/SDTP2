@@ -5,6 +5,7 @@ import jakarta.inject.Singleton;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import tp1.api.Spreadsheet;
@@ -111,8 +112,6 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 		});
 	}
 
-	//TODO return version headers !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 	@Override
 	public String createSpreadsheet(Spreadsheet sheet, String password) {
 
@@ -137,7 +136,9 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 		if(!result.isOK())
 			throw new WebApplicationException(mapError(result.error()));
 		else
-			return result.value();
+			throw new WebApplicationException(
+					Response.status(200).header(RestSpreadsheets.HEADER_VERSION+"-"+domainId, SyncPoint.getVersion()).entity(result.value()).build()
+			);
 	}
 
 	@Override
@@ -158,6 +159,10 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 		Result<Void> result = impl.deleteSpreadsheet(sheetEvent.getSheetId(), sheetEvent.getPassword());
 		if(!result.isOK())
 			throw new WebApplicationException(mapError(result.error()));
+		else
+			throw new WebApplicationException(
+					Response.status(200).header(RestSpreadsheets.HEADER_VERSION+"-"+domainId, SyncPoint.getVersion()).build()
+			);
 	}
 
 	@Override
@@ -173,7 +178,9 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 		if(!result.isOK())
 			throw new WebApplicationException(mapError(result.error()));
 		else
-			return result.value();
+			throw new WebApplicationException(
+					Response.status(200).header(RestSpreadsheets.HEADER_VERSION+"-"+domainId, SyncPoint.getVersion()).entity(result.value()).build()
+			);
 	}
 
 	@Override
@@ -197,8 +204,12 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 		if(!result.isOK())
 			throw new WebApplicationException(mapError(result.error()));
 		else
-			return result.value();
+			throw new WebApplicationException(
+					Response.status(200).header(RestSpreadsheets.HEADER_VERSION+"-"+domainId, SyncPoint.getVersion()).entity(result.value()).build()
+			);
 	}
+
+	//TODO return version headers !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 	@Override
 	public String[][] getSpreadsheetValues(HttpHeaders headers, String sheetId, String userId, String password) {
@@ -221,7 +232,9 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 		if(!result.isOK())
 			throw new WebApplicationException(mapError(result.error()));
 		else
-			return result.value();
+			throw new WebApplicationException(
+					Response.status(200).header(RestSpreadsheets.HEADER_VERSION+"-"+domainId, SyncPoint.getVersion()).entity(result.value()).build()
+			);
 	}
 
 	@Override
@@ -242,6 +255,10 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 		Result<Void> result = impl.updateCell(sheetEvent.getSheetId(), sheetEvent.getCell(), sheetEvent.getRawValue(), sheetEvent.getUserId(), sheetEvent.getPassword());
 		if(!result.isOK())
 			throw new WebApplicationException(mapError(result.error()));
+		else
+			throw new WebApplicationException(
+					Response.status(200).header(RestSpreadsheets.HEADER_VERSION+"-"+domainId, SyncPoint.getVersion()).build()
+			);
 	}
 
 
@@ -263,6 +280,10 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 		Result<Void> result = impl.shareSpreadsheet(sheetEvent.getSheetId(), sheetEvent.getUserId(), sheetEvent.getPassword());
 		if(!result.isOK())
 			throw new WebApplicationException(mapError(result.error()));
+		else
+			throw new WebApplicationException(
+					Response.status(200).header(RestSpreadsheets.HEADER_VERSION+"-"+domainId, SyncPoint.getVersion()).build()
+			);
 	}
 
 	@Override
@@ -283,6 +304,10 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 		Result<Void> result = impl.unshareSpreadsheet(sheetEvent.getSheetId(), sheetEvent.getUserId(), sheetEvent.getPassword());
 		if(!result.isOK())
 			throw new WebApplicationException(mapError(result.error()));
+		else
+			throw new WebApplicationException(
+					Response.status(200).header(RestSpreadsheets.HEADER_VERSION+"-"+domainId, SyncPoint.getVersion()).build()
+			);
 	}
 
 	@Override
@@ -299,6 +324,10 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 		Result<Void> result = impl.deleteUserSpreadsheets(sheetEvent.getUserId(), sheetEvent.getPassword());
 		if(!result.isOK())
 			throw new WebApplicationException(mapError(result.error()));
+		else
+			throw new WebApplicationException(
+					Response.status(200).header(RestSpreadsheets.HEADER_VERSION+"-"+domainId, SyncPoint.getVersion()).build()
+			);
 	}
 }
 
