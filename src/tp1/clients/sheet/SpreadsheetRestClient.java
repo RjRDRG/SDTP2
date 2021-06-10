@@ -13,6 +13,8 @@ import tp1.api.service.util.Result;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static tp1.api.service.rest.RestSpreadsheets.HEADER_VERSION;
+
 public class SpreadsheetRestClient implements SpreadsheetClient {
 
     public final static int CONNECTION_TIMEOUT = 10000;
@@ -33,6 +35,7 @@ public class SpreadsheetRestClient implements SpreadsheetClient {
     private <T> Result<T> addHeaders(Result<T> result, Response response) {
         Map<String, String> headers = response.getStringHeaders().entrySet()
                 .stream()
+                .filter(e -> e.getKey().startsWith(HEADER_VERSION))
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         e -> e.getValue().get(0)
@@ -74,7 +77,7 @@ public class SpreadsheetRestClient implements SpreadsheetClient {
                     .accept(MediaType.APPLICATION_JSON)
                     .delete();
 
-            if (r.getStatus() != Response.Status.OK.getStatusCode())
+            if (r.getStatus() != Response.Status.NO_CONTENT.getStatusCode())
                 return addHeaders(
                         Result.error(Response.Status.fromStatusCode(r.getStatus()), new WebApplicationException(r.getStatus())), r
                 );

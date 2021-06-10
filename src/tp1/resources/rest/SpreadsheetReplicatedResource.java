@@ -25,6 +25,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static tp1.api.service.util.Result.mapError;
+import static tp1.discovery.Discovery.DISCOVERY_PERIOD;
 import static tp1.kafka.KafkaUtils.KAFKA_ADDRESS;
 
 @Singleton
@@ -46,11 +47,10 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 		this.json = new Gson();
 		this.sp = sp;
 		this.publisher = null;
-
-		registerInKafka();
 	}
 
-	private void registerInKafka() {
+	public void registerInKafka() {
+
 		try {
 			this.publisher = KafkaPublisher.createPublisher(KAFKA_ADDRESS);
 		} catch (Exception e) {
@@ -75,39 +75,41 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 				KafkaEvent event = json.fromJson(r.value(), KafkaEvent.class);
 
 				try {
-					if (!event.getPublisherURI().equals(Discovery.getServiceURI())) {
-						switch (event.getPayloadType()) {
-							case CreateSpreadsheetEvent -> {
-								CreateSpreadsheetEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), CreateSpreadsheetEvent.class);
-								impl.createSpreadsheet(sheetEvent.getSheet(), sheetEvent.getPassword()).throwException();
-							}
-							case DeleteSpreadsheetEvent -> {
-								DeleteSpreadsheetEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), DeleteSpreadsheetEvent.class);
-								impl.deleteSpreadsheet(sheetEvent.getSheetId(),sheetEvent.getPassword()).throwException();
-							}
-							case UpdateCellEvent -> {
-								UpdateCellEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), UpdateCellEvent.class);
-								impl.updateCell(sheetEvent.getSheetId(),sheetEvent.getCell(),sheetEvent.getRawValue(),sheetEvent.getUserId(),sheetEvent.getPassword()).throwException();
-							}
-							case ShareSpreadsheetEvent -> {
-								ShareSpreadsheetEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), ShareSpreadsheetEvent.class);
-								impl.shareSpreadsheet(sheetEvent.getSheetId(),sheetEvent.getUserId(),sheetEvent.getPassword()).throwException();
-							}
-							case UnshareSpreadsheetEvent -> {
-								UnshareSpreadsheetEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), UnshareSpreadsheetEvent.class);
-								impl.unshareSpreadsheet(sheetEvent.getSheetId(),sheetEvent.getUserId(),sheetEvent.getPassword()).throwException();
-							}
-							case DeleteUserSpreadsheetsEvent -> {
-								DeleteUserSpreadsheetsEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), DeleteUserSpreadsheetsEvent.class);
-								impl.deleteUserSpreadsheets(sheetEvent.getUserId(), sheetEvent.getPassword()).throwException();
-							}
+					switch (event.getPayloadType()) {
+						case CreateSpreadsheetEvent -> {
+							CreateSpreadsheetEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), CreateSpreadsheetEvent.class);
+							Result<String> result = impl.createSpreadsheet(sheetEvent.getSheet(), sheetEvent.getPassword());
+							sp.setResult(r.offset(), result);
+						}
+						case DeleteSpreadsheetEvent -> {
+							DeleteSpreadsheetEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), DeleteSpreadsheetEvent.class);
+							Result<Void> result = impl.deleteSpreadsheet(sheetEvent.getSheetId(), sheetEvent.getPassword());
+							sp.setResult(r.offset(), result);
+						}
+						case UpdateCellEvent -> {
+							UpdateCellEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), UpdateCellEvent.class);
+							Result<Void> result = impl.updateCell(sheetEvent.getSheetId(), sheetEvent.getCell(), sheetEvent.getRawValue(), sheetEvent.getUserId(), sheetEvent.getPassword());
+							sp.setResult(r.offset(), result);
+						}
+						case ShareSpreadsheetEvent -> {
+							ShareSpreadsheetEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), ShareSpreadsheetEvent.class);
+							Result<Void> result = impl.shareSpreadsheet(sheetEvent.getSheetId(), sheetEvent.getUserId(), sheetEvent.getPassword());
+							sp.setResult(r.offset(), result);
+						}
+						case UnshareSpreadsheetEvent -> {
+							UnshareSpreadsheetEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), UnshareSpreadsheetEvent.class);
+							Result<Void> result = impl.unshareSpreadsheet(sheetEvent.getSheetId(), sheetEvent.getUserId(), sheetEvent.getPassword());
+							sp.setResult(r.offset(), result);
+						}
+						case DeleteUserSpreadsheetsEvent -> {
+							DeleteUserSpreadsheetsEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), DeleteUserSpreadsheetsEvent.class);
+							Result<Void> result = impl.deleteUserSpreadsheets(sheetEvent.getUserId(), sheetEvent.getPassword());
+							sp.setResult(r.offset(), result);
 						}
 					}
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
-
-				sp.setResult(r.offset(), r.value());
 			}
 		});
 	}
@@ -128,11 +130,8 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 
 		long sequenceNumber = publisher.publish(domainId, json.toJson(kafkaEvent));
 
-		KafkaEvent event = json.fromJson(sp.waitForResult(sequenceNumber), KafkaEvent.class);
-		CreateSpreadsheetEvent sheetEvent =
-				json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), CreateSpreadsheetEvent.class);
+		Result<String> result = sp.waitForResult(sequenceNumber);
 
-		Result<String> result = impl.createSpreadsheet(sheetEvent.getSheet(), sheetEvent.getPassword());
 		if(!result.isOK())
 			throw new WebApplicationException(mapError(result.error()));
 		else
@@ -153,10 +152,7 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 
 		long sequenceNumber = publisher.publish(domainId, json.toJson(kafkaEvent));
 
-		KafkaEvent event = json.fromJson(sp.waitForResult(sequenceNumber), KafkaEvent.class);
-		DeleteSpreadsheetEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), DeleteSpreadsheetEvent.class);
-
-		Result<Void> result = impl.deleteSpreadsheet(sheetEvent.getSheetId(), sheetEvent.getPassword());
+		Result<Void> result = sp.waitForResult(sequenceNumber);
 		if(!result.isOK())
 			throw new WebApplicationException(mapError(result.error()));
 		else
@@ -272,10 +268,7 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 
 		long sequenceNumber = publisher.publish(domainId, json.toJson(kafkaEvent));
 
-		KafkaEvent event = json.fromJson(sp.waitForResult(sequenceNumber), KafkaEvent.class);
-		UpdateCellEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), UpdateCellEvent.class);
-
-		Result<Void> result = impl.updateCell(sheetEvent.getSheetId(), sheetEvent.getCell(), sheetEvent.getRawValue(), sheetEvent.getUserId(), sheetEvent.getPassword());
+		Result<Void> result = sp.waitForResult(sequenceNumber);
 		if(!result.isOK())
 			throw new WebApplicationException(mapError(result.error()));
 		else
@@ -297,10 +290,7 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 
 		long sequenceNumber = publisher.publish(domainId, json.toJson(kafkaEvent));
 
-		KafkaEvent event = json.fromJson(sp.waitForResult(sequenceNumber), KafkaEvent.class);
-		ShareSpreadsheetEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), ShareSpreadsheetEvent.class);
-
-		Result<Void> result = impl.shareSpreadsheet(sheetEvent.getSheetId(), sheetEvent.getUserId(), sheetEvent.getPassword());
+		Result<Void> result = sp.waitForResult(sequenceNumber);
 		if(!result.isOK())
 			throw new WebApplicationException(mapError(result.error()));
 		else
@@ -321,10 +311,7 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 
 		long sequenceNumber = publisher.publish(domainId, json.toJson(kafkaEvent));
 
-		KafkaEvent event = json.fromJson(sp.waitForResult(sequenceNumber), KafkaEvent.class);
-		UnshareSpreadsheetEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), UnshareSpreadsheetEvent.class);
-
-		Result<Void> result = impl.unshareSpreadsheet(sheetEvent.getSheetId(), sheetEvent.getUserId(), sheetEvent.getPassword());
+		Result<Void> result = sp.waitForResult(sequenceNumber);
 		if(!result.isOK())
 			throw new WebApplicationException(mapError(result.error()));
 		else
@@ -341,16 +328,15 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 
 		long sequenceNumber = publisher.publish(domainId, json.toJson(kafkaEvent));
 
-		KafkaEvent event = json.fromJson(sp.waitForResult(sequenceNumber), KafkaEvent.class);
-		DeleteUserSpreadsheetsEvent sheetEvent = json.fromJson(new String(event.getJsonPayload(), StandardCharsets.ISO_8859_1), DeleteUserSpreadsheetsEvent.class);
-
-		Result<Void> result = impl.deleteUserSpreadsheets(sheetEvent.getUserId(), sheetEvent.getPassword());
-		if(!result.isOK())
+		Result<Void> result = sp.waitForResult(sequenceNumber);
+		if(!result.isOK()) {
 			throw new WebApplicationException(mapError(result.error()));
-		else
+		}
+		else {
 			throw new WebApplicationException(
-					Response.status(204).header(RestSpreadsheets.HEADER_VERSION+domainId, SyncPoint.getVersion()).build()
+					Response.status(204).header(RestSpreadsheets.HEADER_VERSION + domainId, SyncPoint.getVersion()).build()
 			);
+		}
 	}
 }
 

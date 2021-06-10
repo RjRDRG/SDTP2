@@ -14,11 +14,11 @@ public class SyncPoint
 		return instance;
 	}
 
-	private Map<Long,String> result;
+	private Map<Long,Object> result;
 	private long version;
 
 	private SyncPoint() {
-		result = new HashMap<Long,String>();
+		result = new HashMap<Long,Object>();
 		version = -1L;
 	}
 
@@ -40,7 +40,7 @@ public class SyncPoint
 	/**
 	 * Assuming that results are added sequentially, returns null if the result is not available.
 	 */
-	public synchronized String waitForResult(Long n) {
+	public synchronized <T> T waitForResult(Long n) {
 		while( version < n) {
 			try {
 				wait();
@@ -48,24 +48,17 @@ public class SyncPoint
 				// do nothing
 			}
 		}
-		return result.remove(n);
+		return (T) result.remove(n);
 	}
 
 	/**
 	 * Updates the version and stores the associated result
 	 */
-	public synchronized void setResult( long n, String res) {
+	public synchronized void setResult( long n, Object res) {
 		if( res != null)
 			result.put(n, res);
 		version = n;
 		notifyAll();
-	}
-
-	/**
-	 * Cleans up results that will not be consumed
-	 */
-	public synchronized void cleanupUntil(long n) {
-		result.entrySet().removeIf(longStringEntry -> longStringEntry.getKey() < n);
 	}
 
 }

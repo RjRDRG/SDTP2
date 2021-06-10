@@ -14,6 +14,7 @@ import java.net.URI;
 import java.util.logging.Logger;
 
 import static tp1.clients.sheet.SpreadsheetClient.SERVICE;
+import static tp1.discovery.Discovery.DISCOVERY_PERIOD;
 
 public class SpreadsheetReplicaServer {
 
@@ -39,15 +40,28 @@ public class SpreadsheetReplicaServer {
             String serverURI = String.format("https://%s:%s/rest", ip, PORT);
 
             ResourceConfig config = new ResourceConfig();
-            config.register(new SpreadsheetReplicatedResource(domain, sp));
+            SpreadsheetReplicatedResource resource = new SpreadsheetReplicatedResource(domain, sp);
+            config.register(resource);
 
             JdkHttpServerFactory.createHttpServer(URI.create(serverURI), config, SSLContext.getDefault());
 
             Discovery.init(domain, SERVICE ,serverURI);
-            Discovery.startSendingAnnouncements();
             Discovery.startCollectingAnnouncements();
 
+            while(Discovery.getLocalUsersClient() == null) {
+                try {
+                    Thread.sleep(DISCOVERY_PERIOD);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            Discovery.startSendingAnnouncements();
+
+            resource.registerInKafka();
+
             Log.info(String.format("%s Server ready @ %s\n",  SERVICE, serverURI));
+
         } catch( Exception e) {
             Log.severe(e.getMessage());
         }

@@ -247,7 +247,7 @@ public class SpreadsheetsImpl {
             Result<User> result = Discovery.getLocalUsersClient().getUser(userId, password);
             if(result.error() == Result.ErrorCode.FORBIDDEN)
                 return Result.error(Response.Status.FORBIDDEN);
-            else if(!result.isOK())
+            else if(!result.isOK() && result.error() != Result.ErrorCode.NOT_FOUND)
                 return Result.error(Response.Status.BAD_REQUEST);
 
             Set<String> sheets = spreadsheetOwners.get(userId);
