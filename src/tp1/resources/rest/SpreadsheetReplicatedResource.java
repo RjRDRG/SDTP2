@@ -191,6 +191,7 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 		}
 
 		Map<String, Long> versions = headers.getRequestHeaders().entrySet().stream()
+				.filter(e -> e.getKey().contains(HEADER_VERSION))
 				.collect(Collectors.toMap(
 						Map.Entry::getKey,
 						e -> Long.parseLong(e.getValue().get(0))
@@ -203,13 +204,18 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 		Result<String[][]> result = impl.getReferencedSpreadsheetValues(versions, sheetId, userId, range);
 		if(!result.isOK())
 			throw new WebApplicationException(mapError(result.error()));
-		else
-			throw new WebApplicationException(
-					Response.status(200).header(RestSpreadsheets.HEADER_VERSION+"-"+domainId, SyncPoint.getVersion()).entity(result.value()).build()
-			);
-	}
+		else {
+			Response.ResponseBuilder builder = Response.status(200).entity(result.value());
 
-	//TODO return version headers !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+			for (Map.Entry<String,String> entry : result.getOthers().entrySet()) {
+				builder.header(entry.getKey(), entry.getValue());
+			}
+
+			builder.header(RestSpreadsheets.HEADER_VERSION + "-" + domainId, SyncPoint.getVersion());
+
+			throw new WebApplicationException(builder.build());
+		}
+	}
 
 	@Override
 	public String[][] getSpreadsheetValues(HttpHeaders headers, String sheetId, String userId, String password) {
@@ -219,6 +225,7 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 		}
 
 		Map<String, Long> versions = headers.getRequestHeaders().entrySet().stream()
+				.filter(e -> e.getKey().contains(HEADER_VERSION))
 				.collect(Collectors.toMap(
 						Map.Entry::getKey,
 						e -> Long.parseLong(e.getValue().get(0))
@@ -231,10 +238,17 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 		Result<String[][]> result = impl.getSpreadsheetValues(versions, sheetId, userId, password);
 		if(!result.isOK())
 			throw new WebApplicationException(mapError(result.error()));
-		else
-			throw new WebApplicationException(
-					Response.status(200).header(RestSpreadsheets.HEADER_VERSION+"-"+domainId, SyncPoint.getVersion()).entity(result.value()).build()
-			);
+		else {
+			Response.ResponseBuilder builder = Response.status(200).entity(result.value());
+
+			for (Map.Entry<String,String> entry : result.getOthers().entrySet()) {
+				builder.header(entry.getKey(), entry.getValue());
+			}
+
+			builder.header(RestSpreadsheets.HEADER_VERSION + "-" + domainId, SyncPoint.getVersion());
+
+			throw new WebApplicationException(builder.build());
+		}
 	}
 
 	@Override

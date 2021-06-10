@@ -1,26 +1,18 @@
 package tp1.resources.rest;
 
 import jakarta.inject.Singleton;
-import jakarta.jws.WebService;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.Response.Status;
 import tp1.api.User;
 import tp1.api.service.rest.RestUsers;
-import tp1.api.service.soap.SoapUsers;
-import tp1.api.service.soap.UsersException;
 import tp1.api.service.util.Result;
 import tp1.clients.sheet.SpreadsheetClient;
-import tp1.discovery.Discovery;
 import tp1.impl.UsersImpl;
-import tp1.server.WebServiceType;
 
 import java.util.*;
-import java.util.logging.Logger;
 
 import static tp1.api.service.util.Result.mapError;
-import static tp1.server.WebServiceType.SOAP;
 
 @Singleton
 public class UsersRestResource implements RestUsers {

@@ -21,8 +21,7 @@ public class SpreadsheetDropboxClient implements SpreadsheetRepositoryClient{
             UploadSpreadsheet.UploadSpreadsheetReply reply = UploadSpreadsheet.execute(new UploadSpreadsheet.UploadSpreadsheetArgs(path),spreadsheet);
             return Result.ok(path);
         } catch (Exception e) {
-            e.printStackTrace();
-            return Result.error(e.getMessage(),e);
+            return Result.error(Result.ErrorCode.NOT_AVAILABLE,e);
         }
     }
 
@@ -32,8 +31,7 @@ public class SpreadsheetDropboxClient implements SpreadsheetRepositoryClient{
             DeleteFile.execute(new DeleteFile.DeleteFileArgs(path));
             return Result.ok();
         } catch (Exception e) {
-            e.printStackTrace();
-            return Result.error(e.getMessage(),e);
+            return Result.error(Result.ErrorCode.NOT_AVAILABLE,e);
         }
     }
 
@@ -42,8 +40,7 @@ public class SpreadsheetDropboxClient implements SpreadsheetRepositoryClient{
         try {
             return Result.ok(GetSpreadsheet.execute(new GetSpreadsheet.GetSpreadsheetArgs(path)));
         } catch (Exception e) {
-            e.printStackTrace();
-            return Result.error(e.getMessage(),e);
+            return Result.error(Result.ErrorCode.NOT_AVAILABLE,e);
         }
     }
 

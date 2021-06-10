@@ -1,4 +1,4 @@
-package tp1.server.proxy;
+package tp1.server.rest;
 
 import org.glassfish.jersey.jdkhttp.JdkHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;

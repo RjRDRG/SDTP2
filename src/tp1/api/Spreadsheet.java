@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.logging.Logger;
 
 import tp1.api.engine.AbstractSpreadsheet;
+import tp1.api.service.util.Result;
 import tp1.discovery.Discovery;
 import tp1.util.CellRange;
 
@@ -189,16 +190,18 @@ public class Spreadsheet implements AbstractSpreadsheet {
 	private static Logger Log = Logger.getLogger(Spreadsheet.class.getName());
 
 	@Override
-	public String[][] rangeValues(Map<String,Long> versions, String sheetURL, String range) {
+	public Result<String[][]> rangeValues(Map<String,Long> versions, String sheetURL, String range) {
 		try {
 			String[] parts = sheetURL.split(SHEET_URL_DELIMITER);
 			String domainId = parts[0];
 			String otherSheetId = parts[1];
+			String userId = owner+"@"+this.sheetURL.split(SHEET_URL_DELIMITER)[0];
 
 			return Discovery.getRemoteSpreadsheetClients(domainId)
-					.getReferencedSpreadsheetValues(versions, otherSheetId, owner, range).value();
+					.getReferencedSpreadsheetValues(versions, otherSheetId, userId, range);
 		} catch (Exception e) {
-			return null;
+			e.printStackTrace();
+			return Result.error(Result.ErrorCode.INTERNAL_ERROR, e);
 		}
 	}
 
@@ -211,7 +214,7 @@ public class Spreadsheet implements AbstractSpreadsheet {
 				", rows=" + rows +
 				", columns=" + columns +
 				", sharedWith=" + sharedWith +
-				", rawValues=" + Arrays.toString(rawValues) +
+				", rawValues=" + Arrays.deepToString(rawValues) +
 				'}';
 	}
 }

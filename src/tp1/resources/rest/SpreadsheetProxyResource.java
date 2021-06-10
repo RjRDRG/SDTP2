@@ -13,6 +13,7 @@ import tp1.api.service.util.Result;
 import tp1.clients.sheet.SpreadsheetRepositoryClient;
 import tp1.discovery.Discovery;
 import tp1.impl.SpreadsheetEngineImpl;
+import tp1.kafka.sync.SyncPoint;
 import tp1.util.Cell;
 import tp1.util.CellRange;
 import tp1.util.InvalidCellIdException;
@@ -20,6 +21,8 @@ import tp1.util.InvalidCellIdException;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+
+import static tp1.api.service.util.Result.mapError;
 
 @Singleton
 public class SpreadsheetProxyResource implements RestSpreadsheets {
@@ -52,8 +55,9 @@ public class SpreadsheetProxyResource implements RestSpreadsheets {
             String spreadsheetOwner = sheet.getOwner();
 
             Result<User> result = Discovery.getLocalUsersClient().getUser(spreadsheetOwner, password);
-            if(!result.isOK())
+            if(!result.isOK()) {
                 throw new WebApplicationException(Response.Status.BAD_REQUEST);
+            }
 
             String sheetId = sheet.getOwner()+"~"+UUID.randomUUID();
 
@@ -64,11 +68,6 @@ public class SpreadsheetProxyResource implements RestSpreadsheets {
             Result<String> reply = repositoryClient.uploadSpreadsheet(path, spreadsheet);
 
             if(!reply.isOK()) {
-                try {
-                    reply.value();
-                } catch (Exception exception) {
-                    exception.printStackTrace();
-                }
                 throw new WebApplicationException(Response.Status.INTERNAL_SERVER_ERROR);
             }
 
@@ -87,24 +86,19 @@ public class SpreadsheetProxyResource implements RestSpreadsheets {
 
             String path = "/"+domainId+"/"+sheetId.replace('~','/');
 
-            Spreadsheet sheet = null;
-            try {
-                sheet = repositoryClient.getSpreadsheet(path).value();
-            } catch (Exception e) {
+            Result<Spreadsheet> sheet = repositoryClient.getSpreadsheet(path);
+            if (!sheet.isOK())
                 throw new WebApplicationException(Response.Status.NOT_FOUND);
-            }
 
-            Result<User> result = Discovery.getLocalUsersClient().getUser(sheet.getOwner(), password);
+            Result<User> result = Discovery.getLocalUsersClient().getUser(sheet.value().getOwner(), password);
             if(result.error() == Result.ErrorCode.FORBIDDEN)
                 throw new WebApplicationException(Response.Status.FORBIDDEN);
             else if(!result.isOK())
                 throw new WebApplicationException(Response.Status.BAD_REQUEST);
 
-            try {
-                repositoryClient.delete(path).value();
-            } catch (Exception exception) {
-                exception.printStackTrace();
-            }
+            Result<Void> deleteResult = repositoryClient.delete(path);
+            if(!deleteResult.isOK())
+                throw new WebApplicationException(mapError(deleteResult.error()));
         }
     }
 
@@ -117,25 +111,24 @@ public class SpreadsheetProxyResource implements RestSpreadsheets {
 
         String path = "/"+domainId+"/"+sheetId.replace('~','/');
 
-        Spreadsheet sheet = null;
-        try {
-            sheet = repositoryClient.getSpreadsheet(path).value();
-        } catch (Exception e) {
+        Result<Spreadsheet> sheet = repositoryClient.getSpreadsheet(path);
+        if(!sheet.isOK()) {
             throw new WebApplicationException(Response.Status.NOT_FOUND);
         }
 
         Result<User> result = Discovery.getLocalUsersClient().getUser(userId, password);
-        if (result.error() == Result.ErrorCode.FORBIDDEN)
+        if (result.error() == Result.ErrorCode.FORBIDDEN) {
             throw new WebApplicationException(Response.Status.FORBIDDEN);
-        else if (!result.isOK())
+        }
+        else if (!result.isOK()) {
             throw new WebApplicationException(Response.Status.BAD_REQUEST);
-
-        if (!userId.equals(sheet.getOwner())) {
-            if (!sheet.getSharedWith().stream().anyMatch(user -> user.contains(userId)))
-                throw new WebApplicationException(Response.Status.FORBIDDEN);
         }
 
-        return sheet;
+        if (!userId.equals(sheet.value().getOwner()) && !sheet.value().getSharedWith().stream().anyMatch(user -> user.contains(userId))) {
+            throw new WebApplicationException(Response.Status.FORBIDDEN);
+        }
+
+        return sheet.value();
     }
 
     @Override
@@ -147,31 +140,36 @@ public class SpreadsheetProxyResource implements RestSpreadsheets {
 
         String path = "/"+domainId+"/"+sheetId.replace('~','/');
 
-        Spreadsheet sheet = null;
-        try {
-            sheet = repositoryClient.getSpreadsheet(path).value();
-        } catch (Exception e) {
+        Result<Spreadsheet> sheet = repositoryClient.getSpreadsheet(path);
+        if(!sheet.isOK()) {
             throw new WebApplicationException(Response.Status.NOT_FOUND);
         }
 
-        if (!userId.equals(sheet.getOwner()) && !sheet.getSharedWith().contains(userId)) {
+        if (!userId.equals(sheet.value().getOwner()) && !sheet.value().getSharedWith().contains(userId)) {
             throw new WebApplicationException(Response.Status.BAD_REQUEST);
         }
 
         Map<String, Long> versions = headers.getRequestHeaders().entrySet().stream()
+                .filter(e -> e.getKey().contains(HEADER_VERSION))
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         e -> Long.parseLong(e.getValue().get(0))
                 ));
 
-        String[][] result = null;
-        try {
-            result = engine.computeSpreadsheetValues(versions, sheet);
-        } catch (Exception exception) {
-            throw new WebApplicationException(Response.Status.BAD_REQUEST);
-        }
+        Result<String[][]> values = engine.computeSpreadsheetValues(versions, sheet.value());
+        if(!values.isOK())
+            throw new WebApplicationException(mapError(values.error()));
+        else {
+            Result<String[][]> result = Result.ok(new CellRange(range).extractRangeValuesFrom(values.value()));
 
-        return new CellRange(range).extractRangeValuesFrom(result);
+            Response.ResponseBuilder builder = Response.status(200).entity(result.value());
+
+            for (Map.Entry<String,String> entry : values.getOthers().entrySet()) {
+                builder.header(entry.getKey(), entry.getValue());
+            }
+
+            throw new WebApplicationException(builder.build());
+        }
     }
 
     @Override
@@ -180,19 +178,24 @@ public class SpreadsheetProxyResource implements RestSpreadsheets {
         Spreadsheet spreadsheet = getSpreadsheet(null, sheetId, userId, password);
 
         Map<String, Long> versions = headers.getRequestHeaders().entrySet().stream()
+                .filter(e -> e.getKey().contains(HEADER_VERSION))
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         e -> Long.parseLong(e.getValue().get(0))
                 ));
 
-        String[][] result = null;
-        try {
-            result = engine.computeSpreadsheetValues(versions, spreadsheet);
-        } catch (Exception exception) {
-            throw new WebApplicationException(Response.Status.BAD_REQUEST);
-        }
+        Result<String[][]> values = engine.computeSpreadsheetValues(versions, spreadsheet);
+        if(!values.isOK())
+            throw new WebApplicationException(mapError(values.error()));
+        else {
+            Response.ResponseBuilder builder = Response.status(200).entity(values.value());
 
-        return result;
+            for (Map.Entry<String,String> entry : values.getOthers().entrySet()) {
+                builder.header(entry.getKey(), entry.getValue());
+            }
+
+            throw new WebApplicationException(builder.build());
+        }
     }
 
     @Override
@@ -204,8 +207,6 @@ public class SpreadsheetProxyResource implements RestSpreadsheets {
 
         synchronized(this) {
             Spreadsheet spreadsheet = getSpreadsheet(null, sheetId, userId, password);
-
-            System.out.println(sheetId + " " + spreadsheet.toString());
 
             try {
                 Pair<Integer,Integer> coordinates =  Cell.CellId2Indexes(cell);
@@ -235,27 +236,25 @@ public class SpreadsheetProxyResource implements RestSpreadsheets {
 
             String path = "/"+domainId+"/"+sheetId.replace('~','/');
 
-            Spreadsheet sheet = null;
-            try {
-                sheet = repositoryClient.getSpreadsheet(path).value();
-            } catch (Exception e) {
+            Result<Spreadsheet> sheet = repositoryClient.getSpreadsheet(path);
+            if(!sheet.isOK()) {
                 throw new WebApplicationException(Response.Status.NOT_FOUND);
             }
 
-            Result<User> result = Discovery.getLocalUsersClient().getUser(sheet.getOwner(), password);
+            Result<User> result = Discovery.getLocalUsersClient().getUser(sheet.value().getOwner(), password);
             if(result.error() == Result.ErrorCode.FORBIDDEN)
                 throw new WebApplicationException(Response.Status.FORBIDDEN);
             else if(!result.isOK())
                 throw new WebApplicationException(Response.Status.BAD_REQUEST);
 
-            Set<String> sharedWith = sheet.getSharedWith();
+            Set<String> sharedWith = sheet.value().getSharedWith();
 
             if (sharedWith.contains(userId))
                 throw new WebApplicationException(Response.Status.CONFLICT);
 
             sharedWith.add(userId);
 
-            if (!repositoryClient.uploadSpreadsheet(path, sheet).isOK())
+            if (!repositoryClient.uploadSpreadsheet(path, sheet.value()).isOK())
                 throw new WebApplicationException(Response.Status.INTERNAL_SERVER_ERROR);
         }
     }
@@ -271,27 +270,25 @@ public class SpreadsheetProxyResource implements RestSpreadsheets {
 
             String path = "/"+domainId+"/"+sheetId.replace('~','/');
 
-            Spreadsheet sheet = null;
-            try {
-                sheet = repositoryClient.getSpreadsheet(path).value();
-            } catch (Exception e) {
+            Result<Spreadsheet> sheet = repositoryClient.getSpreadsheet(path);
+            if(!sheet.isOK()) {
                 throw new WebApplicationException(Response.Status.NOT_FOUND);
             }
 
-            Result<User> result = Discovery.getLocalUsersClient().getUser(sheet.getOwner(), password);
+            Result<User> result = Discovery.getLocalUsersClient().getUser(sheet.value().getOwner(), password);
             if(result.error() == Result.ErrorCode.FORBIDDEN)
                 throw new WebApplicationException(Response.Status.FORBIDDEN);
             else if(!result.isOK())
                 throw new WebApplicationException(Response.Status.BAD_REQUEST);
 
-            Set<String> sharedWith = sheet.getSharedWith();
+            Set<String> sharedWith = sheet.value().getSharedWith();
 
             if (!sharedWith.contains(userId))
                 throw new WebApplicationException(Response.Status.NOT_FOUND);
 
             sharedWith.remove(userId);
 
-            if (!repositoryClient.uploadSpreadsheet(path, sheet).isOK())
+            if (!repositoryClient.uploadSpreadsheet(path, sheet.value()).isOK())
                 throw new WebApplicationException(Response.Status.INTERNAL_SERVER_ERROR);
         }
     }

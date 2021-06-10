@@ -1,5 +1,7 @@
 package tp1.api.engine;
 
+import tp1.api.service.util.Result;
+
 import java.util.Map;
 
 /**
@@ -39,5 +41,5 @@ public interface AbstractSpreadsheet {
 	 * @param range - the range of cells covered by the formula
 	 * @return the computed values.
 	 */
-	String[][] rangeValues(Map<String,Long> versions, String sheetURL, String range);
+	Result<String[][]> rangeValues(Map<String,Long> versions, String sheetURL, String range);
 }

@@ -3,6 +3,7 @@ package tp1.api.service.util;
 
 import jakarta.ws.rs.core.Response;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -135,6 +136,7 @@ class OkResult<T> implements Result<T> {
 
 	OkResult(T result) {
 		this.result = result;
+		this.others = new HashMap<>();
 	}
 
 	@Override
@@ -159,7 +161,8 @@ class OkResult<T> implements Result<T> {
 
 	@Override
 	public void setOthers(Map<String, String> others) {
-		this.others = others;
+		for (var entry : others.entrySet())
+			this.others.put(entry.getKey(), entry.getValue());
 	}
 
 	@Override
@@ -183,6 +186,7 @@ class ErrorResult<T> implements Result<T> {
 	ErrorResult(ErrorCode code, Exception exception) {
 		this.code = code;
 		this.exception = exception;
+		this.others = new HashMap<>();
 	}
 
 	@Override
@@ -207,7 +211,8 @@ class ErrorResult<T> implements Result<T> {
 
 	@Override
 	public void setOthers(Map<String, String> others) {
-		this.others = others;
+		for (var entry : others.entrySet())
+			this.others.put(entry.getKey(), entry.getValue());
 	}
 
 	@Override

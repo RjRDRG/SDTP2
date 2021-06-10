@@ -1,6 +1,7 @@
 package tp1.impl;
 
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -11,6 +12,7 @@ import com.gembox.spreadsheet.SpreadsheetInfo;
 
 import tp1.api.engine.AbstractSpreadsheet;
 import tp1.api.engine.SpreadsheetEngine;
+import tp1.api.service.util.Result;
 import tp1.util.CellRange;
 
 
@@ -56,25 +58,24 @@ public class SpreadsheetEngineImpl implements SpreadsheetEngine {
 	}
 	
 	
-	public String[][] computeSpreadsheetValues(Map<String,Long> versions, AbstractSpreadsheet sheet) {
+	public Result<String[][]> computeSpreadsheetValues(Map<String,Long> versions, AbstractSpreadsheet sheet) {
 		ExcelFile workbook = new ExcelFile();
 		ExcelWorksheet worksheet = workbook.addWorksheet(sheet.sheetId());
+
+		Map<String,String> serverVersions = new HashMap<>();
 
 		for (int i = 0; i < sheet.rows(); i++)
 			for (int j = 0; j < sheet.columns(); j++) {
 				String rawVal = sheet.cellRawValue(i, j);
 				ExcelCell cell = worksheet.getCell(i, j);
-				setCell(versions, sheet, worksheet, cell, rawVal);
+				var r = setCell(versions, sheet, worksheet, cell, rawVal);
+				for (var entry : r.getOthers().entrySet()) {
+					serverVersions.put(entry.getKey(),entry.getValue());
+				}
 			}
-
-//		try {
-//			workbook.save("/tmp/" + sheet.sheetId() + ".xls");
-//		} catch( Exception x ) {
-//			x.printStackTrace();
-//		}
 		worksheet.calculate();
 
-		var cells = new String[sheet.rows()][sheet.columns()];
+		String[][] cells = new String[sheet.rows()][sheet.columns()];
 		for (int row = 0; row < sheet.rows(); row++) {
 			for (int col = 0; col < sheet.columns(); col++) {
 				ExcelCell cell = worksheet.getCell(row, col);
@@ -82,12 +83,16 @@ public class SpreadsheetEngineImpl implements SpreadsheetEngine {
 				cells[row][col] = value != null ? value.toString() : ERROR;
 			}
 		}
-		return cells;
+
+		var result = Result.ok(cells);
+		result.setOthers(serverVersions);
+
+		return result;
 	}
 	
 	enum CellType { EMPTY, BOOLEAN, NUMBER, IMPORTRANGE, TEXT, FORMULA };
 	
-	static void setCell(Map<String,Long> versions, AbstractSpreadsheet sheet, ExcelWorksheet worksheet, ExcelCell cell, String rawVal ) {
+	static Result<Void> setCell(Map<String,Long> versions, AbstractSpreadsheet sheet, ExcelWorksheet worksheet, ExcelCell cell, String rawVal ) {
 		CellType type = parseRawValue( rawVal );
 
 		switch (type) {
@@ -100,24 +105,29 @@ public class SpreadsheetEngineImpl implements SpreadsheetEngine {
 				if (matcher.matches()) {
 					var sheetUrl = matcher.group(1);
 					var range = matcher.group(2);
-					var values = sheet.rangeValues(versions, sheetUrl, range);
-					if (values != null)
-						applyRange(versions, worksheet, cell, new CellRange(range), values);
+					Result<String[][]> values = sheet.rangeValues(versions, sheetUrl, range);
+					if (values.isOK())
+						applyRange(worksheet, cell, new CellRange(range), values.value());
 					else
 						cell.setValue(ERROR);
+
+					Result<Void> result = Result.ok();
+					result.setOthers(values.getOthers());
+					return result;
 				}
 			}
 		}
+		return Result.ok();
 	}
 	
 	
-	private static void applyRange(Map<String,Long> versions, ExcelWorksheet worksheet, ExcelCell cell0, CellRange range, String[][] values) {
+	private static void applyRange(ExcelWorksheet worksheet, ExcelCell cell0, CellRange range, String[][] values) {
 		int row0 = cell0.getRow().getIndex(), col0 = cell0.getColumn().getIndex();
 
 		for (int r = 0; r < range.rows(); r++)
 			for (int c = 0; c < range.cols(); c++) {
 				var cell = worksheet.getCell(row0 + r, col0 + c);
-				setCell(versions,null, worksheet, cell, values[r][c]);
+				setCell(null,null, worksheet, cell, values[r][c]);
 			}
 	}
 

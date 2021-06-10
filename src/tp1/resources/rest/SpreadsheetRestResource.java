@@ -3,11 +3,11 @@ package tp1.resources.rest;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.Response;
 import tp1.api.Spreadsheet;
 import tp1.api.service.rest.RestSpreadsheets;
 import tp1.api.service.util.Result;
 import tp1.impl.SpreadsheetsImpl;
-
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -52,31 +52,52 @@ public class SpreadsheetRestResource implements RestSpreadsheets {
 	@Override
 	public String[][] getReferencedSpreadsheetValues(HttpHeaders headers, String sheetId, String userId, String range) {
 		Map<String, Long> versions = headers.getRequestHeaders().entrySet().stream()
+				.filter(e -> e.getKey().contains(HEADER_VERSION))
 				.collect(Collectors.toMap(
 						Map.Entry::getKey,
 						e -> Long.parseLong(e.getValue().get(0))
 				));
 
 		Result<String[][]> result = impl.getReferencedSpreadsheetValues(versions, sheetId, userId, range);
+
+		System.out.println(result);
+
 		if(!result.isOK())
 			throw new WebApplicationException(mapError(result.error()));
-		else
-			return result.value();
+		else {
+			Response.ResponseBuilder builder = Response.status(200).entity(result.value());
+
+			for (Map.Entry<String,String> entry : result.getOthers().entrySet()) {
+				builder.header(entry.getKey(), entry.getValue());
+			}
+
+			throw new WebApplicationException(builder.build());
+		}
 	}
 
 	@Override
 	public String[][] getSpreadsheetValues(HttpHeaders headers, String sheetId, String userId, String password) {
 		Map<String, Long> versions = headers.getRequestHeaders().entrySet().stream()
+				.filter(e -> e.getKey().contains(HEADER_VERSION))
 				.collect(Collectors.toMap(
 						Map.Entry::getKey,
 						e -> Long.parseLong(e.getValue().get(0))
 				));
 
 		Result<String[][]> result = impl.getSpreadsheetValues(versions, sheetId, userId, password);
-		if(!result.isOK())
+
+		if(!result.isOK()) {
 			throw new WebApplicationException(mapError(result.error()));
-		else
-			return result.value();
+		}
+		else {
+			Response.ResponseBuilder builder = Response.status(200).entity(result.value());
+
+			for (Map.Entry<String,String> entry : result.getOthers().entrySet()) {
+				builder.header(entry.getKey(), entry.getValue());
+			}
+
+			throw new WebApplicationException(builder.build());
+		}
 	}
 
 	@Override

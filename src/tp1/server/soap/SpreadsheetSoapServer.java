@@ -5,6 +5,7 @@ import com.sun.net.httpserver.HttpsServer;
 import jakarta.xml.ws.Endpoint;
 import tp1.discovery.Discovery;
 import tp1.resources.rest.SpreadsheetRestResource;
+import tp1.resources.soap.SpreadsheetSoapResource;
 import tp1.server.rest.UsersRestServer;
 import tp1.util.InsecureHostnameVerifier;
 
@@ -46,7 +47,7 @@ public class SpreadsheetSoapServer {
 
             server.setExecutor(Executors.newCachedThreadPool());
 
-            Endpoint soapUsersEndpoint = Endpoint.create(new SpreadsheetRestResource(domain));
+            Endpoint soapUsersEndpoint = Endpoint.create(new SpreadsheetSoapResource(domain));
 
             soapUsersEndpoint.publish(server.createContext(SOAP_USERS_PATH));
 
