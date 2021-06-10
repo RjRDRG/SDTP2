@@ -103,7 +103,7 @@ public class SpreadsheetProxyResource implements RestSpreadsheets {
     }
 
     @Override
-    public Spreadsheet getSpreadsheet(Long version, String sheetId, String userId, String password) {
+    public Spreadsheet getSpreadsheet(HttpHeaders headers, String sheetId, String userId, String password) {
 
         if( sheetId == null || userId == null ) {
             throw new WebApplicationException(Response.Status.BAD_REQUEST);

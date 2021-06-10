@@ -7,15 +7,11 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
-import tp1.api.Spreadsheet;
 import tp1.api.service.rest.RestSpreadsheets;
 import tp1.api.service.util.Result;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
-
-import static tp1.api.service.rest.RestSpreadsheets.HEADER_VERSION;
 
 public class SpreadsheetRestClient implements SpreadsheetClient {
 

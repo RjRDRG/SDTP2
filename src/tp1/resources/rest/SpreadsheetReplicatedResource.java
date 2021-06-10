@@ -137,7 +137,7 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 			throw new WebApplicationException(mapError(result.error()));
 		else
 			throw new WebApplicationException(
-					Response.status(200).header(RestSpreadsheets.HEADER_VERSION+"-"+domainId, SyncPoint.getVersion()).entity(result.value()).build()
+					Response.status(200).header(RestSpreadsheets.HEADER_VERSION+domainId, SyncPoint.getVersion()).entity(result.value()).build()
 			);
 	}
 
@@ -161,12 +161,21 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 			throw new WebApplicationException(mapError(result.error()));
 		else
 			throw new WebApplicationException(
-					Response.status(200).header(RestSpreadsheets.HEADER_VERSION+"-"+domainId, SyncPoint.getVersion()).build()
+					Response.status(204).header(RestSpreadsheets.HEADER_VERSION+domainId, SyncPoint.getVersion()).build()
 			);
 	}
 
 	@Override
-	public Spreadsheet getSpreadsheet(Long version, String sheetId, String userId, String password) {
+	public Spreadsheet getSpreadsheet(HttpHeaders headers, String sheetId, String userId, String password) {
+
+		Map<String, Long> versions = headers.getRequestHeaders().entrySet().stream()
+				.filter(e -> e.getKey().startsWith(HEADER_VERSION))
+				.collect(Collectors.toMap(
+						Map.Entry::getKey,
+						e -> Long.parseLong(e.getValue().get(0))
+				));
+
+		long version = Optional.ofNullable(versions.get(HEADER_VERSION+domainId)).orElse(-1L);
 
 		if( sheetId == null || userId == null ) {
 			throw new WebApplicationException(Status.BAD_REQUEST);
@@ -179,7 +188,7 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 			throw new WebApplicationException(mapError(result.error()));
 		else
 			throw new WebApplicationException(
-					Response.status(200).header(RestSpreadsheets.HEADER_VERSION+"-"+domainId, SyncPoint.getVersion()).entity(result.value()).build()
+					Response.status(200).header(RestSpreadsheets.HEADER_VERSION+domainId, SyncPoint.getVersion()).entity(result.value()).build()
 			);
 	}
 
@@ -191,13 +200,13 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 		}
 
 		Map<String, Long> versions = headers.getRequestHeaders().entrySet().stream()
-				.filter(e -> e.getKey().contains(HEADER_VERSION))
+				.filter(e -> e.getKey().startsWith(HEADER_VERSION))
 				.collect(Collectors.toMap(
 						Map.Entry::getKey,
 						e -> Long.parseLong(e.getValue().get(0))
 				));
 
-		long version = Optional.ofNullable(versions.get(HEADER_VERSION+"-"+this.domainId)).orElse(-1L);
+		long version = Optional.ofNullable(versions.get(HEADER_VERSION+domainId)).orElse(-1L);
 
 		sp.waitForResult(version);
 
@@ -211,7 +220,7 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 				builder.header(entry.getKey(), entry.getValue());
 			}
 
-			builder.header(RestSpreadsheets.HEADER_VERSION + "-" + domainId, SyncPoint.getVersion());
+			builder.header(RestSpreadsheets.HEADER_VERSION + domainId, SyncPoint.getVersion());
 
 			throw new WebApplicationException(builder.build());
 		}
@@ -225,13 +234,13 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 		}
 
 		Map<String, Long> versions = headers.getRequestHeaders().entrySet().stream()
-				.filter(e -> e.getKey().contains(HEADER_VERSION))
+				.filter(e -> e.getKey().startsWith(HEADER_VERSION))
 				.collect(Collectors.toMap(
 						Map.Entry::getKey,
 						e -> Long.parseLong(e.getValue().get(0))
 				));
 
-		long version = Optional.ofNullable(versions.get(HEADER_VERSION+"-"+this.domainId)).orElse(-1L);
+		long version = Optional.ofNullable(versions.get(HEADER_VERSION+domainId)).orElse(-1L);
 
 		sp.waitForResult(version);
 
@@ -245,7 +254,7 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 				builder.header(entry.getKey(), entry.getValue());
 			}
 
-			builder.header(RestSpreadsheets.HEADER_VERSION + "-" + domainId, SyncPoint.getVersion());
+			builder.header(RestSpreadsheets.HEADER_VERSION + domainId, SyncPoint.getVersion());
 
 			throw new WebApplicationException(builder.build());
 		}
@@ -271,7 +280,7 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 			throw new WebApplicationException(mapError(result.error()));
 		else
 			throw new WebApplicationException(
-					Response.status(200).header(RestSpreadsheets.HEADER_VERSION+"-"+domainId, SyncPoint.getVersion()).build()
+					Response.status(204).header(RestSpreadsheets.HEADER_VERSION+domainId, SyncPoint.getVersion()).build()
 			);
 	}
 
@@ -296,7 +305,7 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 			throw new WebApplicationException(mapError(result.error()));
 		else
 			throw new WebApplicationException(
-					Response.status(200).header(RestSpreadsheets.HEADER_VERSION+"-"+domainId, SyncPoint.getVersion()).build()
+					Response.status(204).header(RestSpreadsheets.HEADER_VERSION+domainId, SyncPoint.getVersion()).build()
 			);
 	}
 
@@ -320,7 +329,7 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 			throw new WebApplicationException(mapError(result.error()));
 		else
 			throw new WebApplicationException(
-					Response.status(200).header(RestSpreadsheets.HEADER_VERSION+"-"+domainId, SyncPoint.getVersion()).build()
+					Response.status(204).header(RestSpreadsheets.HEADER_VERSION+domainId, SyncPoint.getVersion()).build()
 			);
 	}
 
@@ -340,7 +349,7 @@ public class SpreadsheetReplicatedResource implements RestSpreadsheets {
 			throw new WebApplicationException(mapError(result.error()));
 		else
 			throw new WebApplicationException(
-					Response.status(200).header(RestSpreadsheets.HEADER_VERSION+"-"+domainId, SyncPoint.getVersion()).build()
+					Response.status(204).header(RestSpreadsheets.HEADER_VERSION+domainId, SyncPoint.getVersion()).build()
 			);
 	}
 }

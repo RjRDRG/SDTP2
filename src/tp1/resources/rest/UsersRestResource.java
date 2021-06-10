@@ -7,7 +7,6 @@ import jakarta.ws.rs.core.Response;
 import tp1.api.User;
 import tp1.api.service.rest.RestUsers;
 import tp1.api.service.util.Result;
-import tp1.clients.sheet.SpreadsheetClient;
 import tp1.impl.UsersImpl;
 
 import java.util.*;
@@ -55,7 +54,7 @@ public class UsersRestResource implements RestUsers {
 	}
 
 	@Override
-	public Response deleteUser(Long version, String userId, String password) {
+	public Response deleteUser(String userId, String password) {
 		Result<User> result = impl.deleteUser(userId, password);
 		if(!result.isOK())
 			throw new WebApplicationException(mapError(result.error()));
@@ -63,11 +62,9 @@ public class UsersRestResource implements RestUsers {
 			Response.ResponseBuilder responseBuilder =  Response.status(200)
 					.encoding(MediaType.APPLICATION_JSON).entity(result.value());
 
-			String header = SpreadsheetClient.SERVICE+domainId;
-			String domainVersion = result.getOthers().get(header);
-
-			if(domainVersion != null)
-				responseBuilder = responseBuilder.header(header,domainVersion);
+			for(var entry : result.getOthers().entrySet()) {
+				responseBuilder.header(entry.getKey(), entry.getValue());
+			}
 
 			return responseBuilder.build();
 		}

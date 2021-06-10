@@ -40,7 +40,7 @@ public class SyncPoint
 	/**
 	 * Assuming that results are added sequentially, returns null if the result is not available.
 	 */
-	public synchronized String waitForResult( long n) {
+	public synchronized String waitForResult(Long n) {
 		while( version < n) {
 			try {
 				wait();

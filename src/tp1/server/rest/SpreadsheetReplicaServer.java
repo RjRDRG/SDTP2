@@ -6,7 +6,6 @@ import tp1.discovery.Discovery;
 import tp1.kafka.sync.SyncPoint;
 import tp1.resources.rest.SpreadsheetReplicatedResource;
 import tp1.util.InsecureHostnameVerifier;
-import tp1.util.VersionFilter;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -41,7 +40,6 @@ public class SpreadsheetReplicaServer {
 
             ResourceConfig config = new ResourceConfig();
             config.register(new SpreadsheetReplicatedResource(domain, sp));
-            config.register(new VersionFilter());
 
             JdkHttpServerFactory.createHttpServer(URI.create(serverURI), config, SSLContext.getDefault());
 

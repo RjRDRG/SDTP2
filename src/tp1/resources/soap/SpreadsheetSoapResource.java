@@ -8,6 +8,7 @@ import tp1.api.service.util.Result;
 import tp1.impl.SpreadsheetsImpl;
 
 import java.util.HashMap;
+import java.util.UUID;
 
 import static tp1.api.service.util.Result.mapError;
 
@@ -28,6 +29,7 @@ public class SpreadsheetSoapResource implements SoapSpreadsheets {
 
 	@Override
 	public String createSpreadsheet(Spreadsheet sheet, String password) throws SheetsException {
+		sheet.setSheetId(UUID.randomUUID().toString());
 		Result<String> result = impl.createSpreadsheet(sheet, password);
 		if(!result.isOK())
 			throw new SheetsException(result.error().name());

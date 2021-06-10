@@ -9,6 +9,7 @@ import tp1.api.service.rest.RestSpreadsheets;
 import tp1.api.service.util.Result;
 import tp1.impl.SpreadsheetsImpl;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static tp1.api.service.util.Result.mapError;
@@ -26,6 +27,7 @@ public class SpreadsheetRestResource implements RestSpreadsheets {
 
 	@Override
 	public String createSpreadsheet(Spreadsheet sheet, String password) {
+		sheet.setSheetId(UUID.randomUUID().toString());
 		Result<String> result = impl.createSpreadsheet(sheet, password);
 		if(!result.isOK())
 			throw new WebApplicationException(mapError(result.error()));
@@ -41,7 +43,7 @@ public class SpreadsheetRestResource implements RestSpreadsheets {
 	}
 
 	@Override
-	public Spreadsheet getSpreadsheet(Long version, String sheetId, String userId, String password) {
+	public Spreadsheet getSpreadsheet(HttpHeaders headers, String sheetId, String userId, String password) {
 		Result<Spreadsheet> result = impl.getSpreadsheet(sheetId, userId, password);
 		if(!result.isOK())
 			throw new WebApplicationException(mapError(result.error()));

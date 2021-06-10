@@ -96,13 +96,14 @@ public class UsersImpl {
                 return Result.error(ErrorCode.FORBIDDEN );
             }
 
-            try {
-                Discovery.getLocalSpreadsheetClients().deleteUserSpreadsheets(userId, password).value();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            Result<Void> deleteSheets = Discovery.getLocalSpreadsheetClients().deleteUserSpreadsheets(userId, password);
+            if(!deleteSheets.isOK())
+                return Result.error(deleteSheets.error());
 
-            return Result.ok(users.remove(userId));
+            Result<User> result = Result.ok(users.remove(userId));
+            result.setOthers(deleteSheets.getOthers());
+
+            return result;
         }
     }
 

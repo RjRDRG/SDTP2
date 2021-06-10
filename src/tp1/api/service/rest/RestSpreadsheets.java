@@ -10,7 +10,7 @@ import tp1.api.Spreadsheet;
 @Path(RestSpreadsheets.PATH)
 public interface RestSpreadsheets {
 
-	String HEADER_VERSION = "sheets-server-version";
+	String HEADER_VERSION = "Sheetsserver";
 	String PATH="/spreadsheets";
 	
 	/**
@@ -59,7 +59,7 @@ public interface RestSpreadsheets {
 	@GET
 	@Path("/{sheetId}")
 	@Produces(MediaType.APPLICATION_JSON)
-	Spreadsheet getSpreadsheet(@HeaderParam(RestSpreadsheets.HEADER_VERSION) Long version, @PathParam("sheetId") String sheetId , @QueryParam("userId") String userId,
+	Spreadsheet getSpreadsheet(@Context HttpHeaders headers, @PathParam("sheetId") String sheetId , @QueryParam("userId") String userId,
 							   @QueryParam("password") String password);
 		
 	

@@ -44,21 +44,16 @@ public class SpreadsheetsImpl {
             if(!result.isOK())
                 return Result.error(Response.Status.BAD_REQUEST);
 
-            String sheetId;
-            do {
-                sheetId = UUID.randomUUID().toString();
-            } while (spreadsheets.containsKey(sheetId));
+            Spreadsheet spreadsheet = new Spreadsheet(sheet,domainId);
 
-            Spreadsheet spreadsheet = new Spreadsheet(sheet,sheetId,domainId);
-
-            spreadsheets.put(sheetId, spreadsheet);
+            spreadsheets.put(spreadsheet.getSheetId(), spreadsheet);
 
             if (!spreadsheetOwners.containsKey(spreadsheetOwner))
                 spreadsheetOwners.put(spreadsheetOwner, new TreeSet<>());
 
-            spreadsheetOwners.get(spreadsheetOwner).add(sheetId);
+            spreadsheetOwners.get(spreadsheetOwner).add(spreadsheet.getSheetId());
 
-            return Result.ok(sheetId);
+            return Result.ok(spreadsheet.getSheetId());
         }
     }
 
