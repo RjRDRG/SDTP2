@@ -61,7 +61,6 @@ public class SpreadsheetReplicaServer {
             resource.registerInKafka();
 
             Log.info(String.format("%s Server ready @ %s\n",  SERVICE, serverURI));
-
         } catch( Exception e) {
             Log.severe(e.getMessage());
         }

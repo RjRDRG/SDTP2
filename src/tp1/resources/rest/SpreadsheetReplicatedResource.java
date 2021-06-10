@@ -3,14 +3,12 @@ package tp1.resources.rest;
 import com.google.gson.Gson;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.WebApplicationException;
-import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import tp1.api.Spreadsheet;
 import tp1.api.service.rest.RestSpreadsheets;
-import tp1.api.service.soap.SheetsException;
 import tp1.api.service.util.Result;
 import tp1.discovery.Discovery;
 import tp1.impl.SpreadsheetsImpl;
@@ -25,7 +23,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static tp1.api.service.util.Result.mapError;
-import static tp1.discovery.Discovery.DISCOVERY_PERIOD;
 import static tp1.kafka.KafkaUtils.KAFKA_ADDRESS;
 
 @Singleton

@@ -208,7 +208,7 @@ public class SpreadsheetDropboxClient implements SpreadsheetRepositoryClient{
             if(r == null) {
                 throw new Exception("Invalid request");
             }
-            else if(r.getCode() != 200) {
+            else if(r.getCode() >= 500) {
                 throw new Exception(
                         "status: " + r.getCode() +
                         "\nmessage: " + r.getMessage() +

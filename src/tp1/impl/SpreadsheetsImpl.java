@@ -251,8 +251,8 @@ public class SpreadsheetsImpl {
                 return Result.error(Response.Status.BAD_REQUEST);
 
             Set<String> sheets = spreadsheetOwners.get(userId);
-
-            sheets.forEach(spreadsheets::remove);
+            if(sheets!=null)
+                sheets.forEach(spreadsheets::remove);
             spreadsheetOwners.remove(userId);
 
             return Result.ok();
